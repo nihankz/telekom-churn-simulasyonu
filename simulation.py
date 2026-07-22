@@ -97,8 +97,11 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
         key="bireysel",
     )
     if bireysel_dosya is not None:
+      st.success("✅ Fatura başarıyla yüklendi.")
+
+    if st.button("🚀 Faturayı Analiz Et & Hesapla", use_container_width=True):
       st.session_state.fatura_okundu = True
-      st.success("✅ Fatura başarıyla yüklendi ve ayrıştırıldı.")
+      st.success("🔍 Fatura başarıyla ayrıştırıldı!")
 
   with col_ocr2:
     st.write(

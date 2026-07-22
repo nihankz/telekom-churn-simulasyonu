@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Telekom Analytics | Karar Destek & Pazar Simülatörü",
+    page_title="Telekom Analytics | Karar Destek & Oyun Teorisi",
     page_icon="📶",
     layout="wide"
 )
@@ -17,20 +17,13 @@ st.markdown("""
     .main {
         background-color: #0e1117;
     }
-    .metric-card {
-        background-color: #1e222d;
-        border-radius: 10px;
-        padding: 15px;
-        border: 1px solid #2e3440;
-    }
     .stTabs [data-baseweb="tab-list"] {
-        gap: 20px;
+        gap: 15px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
+        height: 48px;
         border-radius: 8px;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
     }
     </style>
@@ -38,11 +31,15 @@ st.markdown("""
 
 # --- ÜST BAŞLIK BANDI ---
 st.title("📶 Telekom Analytics Portal")
-st.caption("Pazar Dinamikleri, Churn Analizi ve Bireysel Tarife Optimalizasyon Modeli")
+st.caption("Pazar Dinamikleri, Churn Analizi ve Oyun Teorisi (Nash Equilibrium) Modeli")
 st.markdown("---")
 
 # --- SEKMELER ---
-tab1, tab2 = st.tabs(["👤 Bireysel Tarife & Amortisman Analizi", "📊 Kurumsal Pazar & Churn Simülasyonu"])
+tab1, tab2, tab3 = st.tabs([
+    "👤 Bireysel Tarife Analizi", 
+    "📊 Kurumsal Churn Simülasyonu", 
+    "♟️ Oyun Teorisi & Nash Dengesi"
+])
 
 # ==========================================
 # SEKME 1: BİREYSEL HESAPLAYICI & TASARRUF
@@ -112,12 +109,10 @@ with tab2:
     zam_vf = st.sidebar.slider("Vodafone Zam Oranı (%)", 0, 100, 25)
     zam_tt = st.sidebar.slider("Türk Telekom Zam Oranı (%)", 0, 100, 20)
 
-    # Başlangıç Müşteri Dağılımı (BTK Oranları)
     n_tk = int(toplam_abone * 0.41)
     n_vf = int(toplam_abone * 0.31)
     n_tt = toplam_abone - (n_tk + n_vf)
 
-    # Churn Olasılıkları
     churn_tk = np.clip((zam_tk / 100) * 0.55, 0, 0.85)
     churn_vf = np.clip((zam_vf / 100) * 0.55, 0, 0.85)
     churn_tt = np.clip((zam_tt / 100) * 0.55, 0, 0.85)
@@ -136,7 +131,6 @@ with tab2:
         "Simülasyon Sonrası": [son_tk, son_vf, son_tt]
     })
 
-    # Görselleştirme (Grafikler)
     c1, c2 = st.columns(2)
     
     with c1:
@@ -155,12 +149,11 @@ with tab2:
             names="Operatör", 
             values="Simülasyon Sonrası", 
             hole=0.4,
-            color_discrete_sequence=['#FFC000', '#E60000', '#001E50'] # Turkcell, VF, TT Kurumsal Renkleri
+            color_discrete_sequence=['#FFC000', '#E60000', '#001E50']
         )
         fig_pie.update_layout(template='plotly_dark', margin=dict(l=20, r=20, t=30, b=20))
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    # İndirme Butonu
     st.markdown("---")
     csv_data = df_sektor.to_csv(index=False).encode('utf-8')
     st.download_button(
@@ -169,3 +162,62 @@ with tab2:
         file_name='telekom_pazar_simulasyonu.csv',
         mime='text/csv',
     )
+
+# ==========================================
+# SEKME 3: OYUN TEORİSİ & NASH DENGESİ
+# ==========================================
+with tab3:
+    st.subheader("♟️ Bertrand Fiyat Rekabeti & Nash Dengesi Analizi")
+    st.write("Telekom sektöründeki duopol/oligopol fiyatlandırma stratejilerinin Oyun Teorisi matrisi ile modellenmesi.")
+
+    col_g1, col_g2 = st.columns(2)
+
+    with col_g1:
+        st.markdown("#### ⚙️ Kazanç (Payoff) Parametreleri")
+        p_base = st.slider("Taban Paket Fiyatı (TL)", 200, 600, 350)
+        cost_base = st.slider("Abone Başına Altyapı Maliyeti (TL)", 50, 200, 100)
+
+    with col_g2:
+        st.markdown("#### 🎯 Strateji Seçenekleri")
+        st.info("""
+        * **Yüksek Zam (Agresif Kâr):** Yüksek marj ama müşteri kaybı riski.
+        * **Düşük Zam (Pazar Payı Odaklı):** Düşük marj ama rakip müşteriyi çekme fırsatı.
+        """)
+
+    # Matris Hesaplama Mantığı (Payoff Matrix)
+    # Kazançlar: (Turkcell Kârı, Vodafone Kârı)
+    # Turkcell Yüksek / Vodafone Yüksek -> İkisi de yüksek marjla kârlı
+    # Turkcell Yüksek / Vodafone Düşük -> Turkcell müşteri kaybeder, Vodafone kazanır
+    
+    payoff_matrix = {
+        ("Yüksek Zam", "Yüksek Zam"): (85, 80),
+        ("Yüksek Zam", "Düşük Zam"): (40, 110),
+        ("Düşük Zam", "Yüksek Zam"): (120, 35),
+        ("Düşük Zam", "Düşük Zam"): (65, 60)
+    }
+
+    st.markdown("---")
+    st.markdown("### 📋 Stratejik Payoff (Kazanç) Matrisi (Milyon TL)")
+
+    df_payoff = pd.DataFrame({
+        "Vodafone: Yüksek Zam": [
+            f"TK: {payoff_matrix[('Yüksek Zam', 'Yüksek Zam')][0]}M | VF: {payoff_matrix[('Yüksek Zam', 'Yüksek Zam')][1]}M",
+            f"TK: {payoff_matrix[('Düşük Zam', 'Yüksek Zam')][0]}M | VF: {payoff_matrix[('Düşük Zam', 'Yüksek Zam')][1]}M"
+        ],
+        "Vodafone: Düşük Zam": [
+            f"TK: {payoff_matrix[('Yüksek Zam', 'Düşük Zam')][0]}M | VF: {payoff_matrix[('Yüksek Zam', 'Düşük Zam')][1]}M",
+            f"TK: {payoff_matrix[('Düşük Zam', 'Düşük Zam')][0]}M | VF: {payoff_matrix[('Düşük Zam', 'Düşük Zam')][1]}M"
+        ]
+    }, index=["Turkcell: Yüksek Zam", "Turkcell: Düşük Zam"])
+
+    st.table(df_payoff)
+
+    # Nash Dengesi Yorumlama
+    st.markdown("### 🏆 Nash Equilibrium (Denge) Sonucu")
+    
+    st.success("""
+    🎯 **Denge Noktası:** **(Düşük Zam, Düşük Zam)**
+    
+    * **Oyun Teorisi Yorumu:** Şirketler tek başlarına fiyat yükseltirse müşteri kaybedeceklerinden çekindikleri için (Tutsak İkilemi - Prisoner's Dilemma), her iki oyuncu da **'Düşük Zam'** stratejisinde sabit kalır. 
+    * Bu nokta, hiçbir oyuncunun **tek taraflı olarak hamlesini değiştirerek kârını artıramayacağı Nash Dengesi** noktasıdır.
+    """)

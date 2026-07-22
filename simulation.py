@@ -3,15 +3,58 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-# Sayfa Ayarları
+# --- SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Telekom Financial Analytics Portal", 
-    page_icon="📊", 
+    page_title="Fatura & Taahhüt Analytics Portal", 
+    page_icon="📲", 
     layout="wide"
 )
 
-st.title("📊 Telekomünikasyon Finansal Karar & Optimasyon Portalı")
-st.caption("Enflasyon ayarlanmış Net Bugünkü Değer (NPV), Birim GB Maliyet Eğrisi ve Sözleşme Risk Skoru Analizi")
+# --- BİLGİ / ŞABLON BUTONLARI İÇİN MANTIKSAL HAZIRLIK ---
+if 'gb_val' not in st.session_state:
+    st.session_state.gb_val = 25
+
+def set_template(gb):
+    st.session_state.gb_val = gb
+
+# --- ÖZEL CSS TASARIMI ---
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+    }
+    .hero-header {
+        background: linear-gradient(90deg, #1f2937 0%, #111827 100%);
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid #374151;
+        margin-bottom: 25px;
+    }
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- BAŞLIK / HERO BANNER ---
+st.markdown("""
+    <div class="hero-header">
+        <h1 style='color: #F3F4F6; margin:0;'>📲 Fatura & Taahhüt Akıllı Karar Portalı</h1>
+        <p style='color: #9CA3AF; margin-top: 5px; margin-bottom:0;'>Enflasyon Korumalı NPV Analizi, Operatör Karşılaştırma ve Taahhüt Risk Yönetimi</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# --- HIZLI PROFİL ŞABLONLARI ---
+st.markdown("##### ⚡ Hızlı Profil Seçimi")
+col_b1, col_b2, col_b3, _ = st.columns([1, 1, 1, 2])
+with col_b1:
+    st.button("🎓 Öğrenci (15 GB)", on_click=set_template, args=(15,), use_container_width=True)
+with col_b2:
+    st.button("👤 Standart (25 GB)", on_click=set_template, args=(25,), use_container_width=True)
+with col_b3:
+    st.button("🚀 Yoğun Kullanım (50 GB)", on_click=set_template, args=(50,), use_container_width=True)
+
 st.markdown("---")
 
 # --- GİRDİ PANELİ ---
@@ -19,91 +62,88 @@ col_in1, col_in2, col_in3 = st.columns(3)
 
 with col_in1:
     st.subheader("1. Sözleşme & Teklif")
-    mevcut_op = st.selectbox("Mevcut Operatör", ["Turkcell", "Vodafone", "Türk Telekom"])
-    yenileme_fiyat = st.number_input("Aylık Yenileme Teklifi (TL)", value=500, step=25)
-    rakip_fiyat = st.number_input("En İyi Rakip Fiyatı (TL)", value=340, step=25)
+    mevcut_op = st.selectbox("Mevcut Operatörünüz", ["Turkcell", "Vodafone", "Türk Telekom"])
+    yenileme_fiyat = st.number_input("Aylık Yenileme Teklifi (TL)", value=480, step=20)
+    rakip_fiyat = st.number_input("En İyi Rakip Fiyatı (TL)", value=320, step=20)
 
 with col_in2:
-    st.subheader("2. Cayma & Taahhüt")
-    cayma_bedeli = st.number_input("Mevcut Cayma Bedeli (TL)", value=600, step=50)
-    taahhut_ay = st.selectbox("Taahhüt Süresi (Ay)", [12, 24], index=0)
-    gb_kullanim = st.slider("Aylık Ortalama İnternet (GB)", 5, 100, 25)
+    st.subheader("2. Cayma & Kullanım")
+    cayma_bedeli = st.number_input("Erken Ayrılma / Cayma Bedeli (TL)", value=500, step=50)
+    taahhut_ay = st.radio("Taahhüt Süresi (Ay)", [12, 24], horizontal=True)
+    gb_kullanim = st.slider("Aylık İnternet İhtiyacı (GB)", 5, 100, key="gb_val")
 
 with col_in3:
-    st.subheader("3. Makroekonomik Parametreler")
-    enflasyon_beklentisi = st.slider("Yıllık Tahmini Enflasyon (%)", 0, 100, 35)
+    st.subheader("3. Makro Parametreler")
+    enflasyon_beklentisi = st.slider("Tahmini Yıllık Enflasyon (%)", 10, 80, 35)
     firsat_maliyeti = st.slider("Aylık İskonto / Faiz Oranı (%)", 0.0, 5.0, 2.0, step=0.5)
 
-# --- FİNANSAL ALGORİTMA (NPV & ENFLASYON AYARLAMASI) ---
-# Aylık iskonto oranı
+# --- FİNANSAL ALGORİTMA (NPV & ENFLASYON) ---
 r = firsat_maliyeti / 100
 
-# Nakit Akışları Hesabı
 npv_mevcut = sum([yenileme_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)])
 npv_rakip = cayma_bedeli + sum([rakip_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)])
-
 net_npv_kazanc = npv_mevcut - npv_rakip
-gb_basa_maliyet_mevcut = yenileme_fiyat / gb_kullanim
-gb_basa_maliyet_rakip = rakip_fiyat / gb_kullanim
 
-# Risk Skoru Hesabı (0 - 100)
-risk_skoru = min(100, int((cayma_bedeli / (yenileme_fiyat * 2)) * 30 + (taahhut_ay / 12) * 40 + (enflasyon_beklentisi / 100) * 30))
+gb_maliyet_mevcut = yenileme_fiyat / gb_kullanim
+gb_maliyet_rakip = rakip_fiyat / gb_kullanim
+
+# Konfeti Efekti (Büyük tasarruf varsa)
+if net_npv_kazanc > 1000:
+    st.balloons()
 
 st.markdown("---")
 
-# --- SONUÇ PANELİ ---
-st.subheader("📈 Analitik Değerlendirme & Finansal Rapor")
+# --- ANALİZ VE GRAFİK EKRANI ---
+st.subheader("📊 Analitik Karar & Karşılaştırma Raporu")
 
-m1, m2, m3, m4 = st.columns(4)
+c_left, c_right = st.columns([1, 1])
 
-m1.metric(
-    label="Bugünkü Net Değer (NPV) Kazancı", 
-    value=f"{abs(net_npv_kazanc):,.0f} TL", 
-    delta="Rakip Avantajlı" if net_npv_kazanc > 0 else "Mevcut Avantajlı",
-    delta_color="normal" if net_npv_kazanc > 0 else "inverse"
-)
+with c_left:
+    st.markdown("##### 🎯 Fiyat Verimliliği (Piyasa Göstergesi)")
+    
+    # Gauge Termometre Grafiği
+    fig_gauge = go.Figure(go.Indicator(
+        mode = "gauge+number+delta",
+        value = yenileme_fiyat,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Teklif Fiyatı vs Rakip Ort."},
+        delta = {'reference': rakip_fiyat, 'increasing': {'color': "red"}, 'decreasing': {'color': "green"}},
+        gauge = {
+            'axis': {'range': [None, rakip_fiyat * 2]},
+            'bar': {'color': "#3B82F6"},
+            'steps' : [
+                {'range': [0, rakip_fiyat], 'color': "rgba(16, 185, 129, 0.2)"},
+                {'range': [rakip_fiyat, rakip_fiyat * 1.5], 'color': "rgba(245, 158, 11, 0.2)"},
+                {'range': [rakip_fiyat * 1.5, rakip_fiyat * 2], 'color': "rgba(239, 68, 68, 0.2)"}
+            ],
+        }
+    ))
+    fig_gauge.update_layout(template="plotly_dark", height=280, margin=dict(l=20, r=20, t=30, b=20))
+    st.plotly_chart(fig_gauge, use_container_width=True)
 
-m2.metric(
-    label="Mevcut GB Başı Maliyet", 
-    value=f"{gb_basa_maliyet_mevcut:.2f} TL/GB"
-)
+with c_right:
+    st.markdown("##### 📈 Birim Maliyet Kıyaslaması")
+    
+    m1, m2 = st.columns(2)
+    m1.metric("Mevcut GB Başı Maliyet", f"{gb_maliyet_mevcut:.2f} TL/GB")
+    m2.metric("Rakip GB Başı Maliyet", f"{gb_maliyet_rakip:.2f} TL/GB", delta=f"-{(1 - gb_maliyet_rakip/gb_maliyet_mevcut)*100:.1f}%")
+    
+    st.markdown("---")
+    
+    if net_npv_kazanc > 0:
+        st.success(f"🔥 **FIRSAT:** Enflasyon ayarlı Net Bugünkü Değer (NPV) hesabına göre, cayma bedelini ödeyip rakibe geçmek **{taahhut_ay} ayda net {net_npv_kazanc:,.0f} TL** cebinizde bırakıyor!")
+    else:
+        st.info("🛡️ **KORUMA:** Cayma bedeli yüksek olduğu için mevcut teklifte kalmak şu an daha rasyonel.")
 
-m3.metric(
-    label="Rakip GB Başı Maliyet", 
-    value=f"{gb_basa_maliyet_rakip:.2f} TL/GB",
-    delta=f"-{(1 - gb_basa_maliyet_rakip/gb_basa_maliyet_mevcut)*100:.1f}%"
-)
-
-m4.metric(
-    label="Sözleşme Risk Skoru", 
-    value=f"{risk_skoru} / 100",
-    help="Yüksek skor, yüksek enflasyon ve uzun taahhüt döneminde esnekliğinizi kaybettiğinizi gösterir."
-)
-
-# --- GRAFİK KISMI ---
-st.markdown("### 📉 Zaman İçi Nakit Akışı & Maliyet Birikimi")
-
+# Akış Grafiği
+st.markdown("##### 📉 Ay Bazında Kumulatif Finansal Yük")
 aylar = list(range(1, taahhut_ay + 1))
 kumulatif_mevcut = [sum([yenileme_fiyat / ((1 + r) ** i) for i in range(1, t + 1)]) for t in aylar]
 kumulatif_rakip = [cayma_bedeli + sum([rakip_fiyat / ((1 + r) ** i) for i in range(1, t + 1)]) for t in aylar]
 
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=aylar, y=kumulatif_mevcut, mode='lines+markers', name='Mevcut Operatör (Kumulatif NPV)', line=dict(color='#FF4B4B', width=3)))
-fig.add_trace(go.Scatter(x=aylar, y=kumulatif_rakip, mode='lines+markers', name='Rakip Operatör (Cayma Dahil NPV)', line=dict(color='#00CC96', width=3)))
+fig_line = go.Figure()
+fig_line.add_trace(go.Scatter(x=aylar, y=kumulatif_mevcut, mode='lines+markers', name='Mevcut Operatör', line=dict(color='#EF4444', width=3)))
+fig_line.add_trace(go.Scatter(x=aylar, y=kumulatif_rakip, mode='lines+markers', name='Rakip Operatör (Cayma Dahil)', line=dict(color='#10B981', width=3)))
+fig_line.update_layout(template="plotly_dark", height=320, margin=dict(l=20, r=20, t=30, b=20), xaxis_title="Ay", yaxis_title="Toplam Maliyet (TL)")
 
-fig.update_layout(
-    title="Ay Bazında Finansal Yük & Başabaş (Break-Even) Analizi",
-    xaxis_title="Ay",
-    yaxis_title="Toplam Bugünkü Değer (TL)",
-    template="plotly_dark",
-    height=400
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-# Karar Özeti
-if net_npv_kazanc > 0:
-    st.success(f"🎯 **Finansal Model Tavesiyesi:** Enflasyon ve iskonto oranı hesaba katıldığında, cayma bedelini peşin ödeyip rakip operatöre geçmek dönemsel olarak net **{net_npv_kazanc:,.0f} TL bugünkü değer kazancı** sağlamaktadır.")
-else:
-    st.warning(f"⚠️ **Finansal Model Tavsiyesi:** Peşin cayma bedeli yükü nedeniyle mevcut teklifi kabul etmek finansal açıdan daha rasyoneldir.")
-    
+st.plotly_chart(fig_line, use_container_width=True)

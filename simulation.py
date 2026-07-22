@@ -270,7 +270,7 @@ else:
         if st.button("⚙️ Tüm Hatları Otomatik Optimize Et (SaaS Motoru)", use_container_width=True):
             st.balloons()
             st.success("🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!")
-    bireysel_dosya = st.file_uploader(
+bireysel_dosya = st.file_uploader(
     "Bireysel Fatura Yükleyin", type=["pdf", "csv", "xlsx"], key="bireysel"
 )
 kurumsal_dosya = st.file_uploader(

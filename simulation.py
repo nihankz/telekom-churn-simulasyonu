@@ -277,3 +277,6 @@ else:
 yuklenen_dosya = st.file_uploader(
     "Bir dosya yükleyin", type=["pdf", "csv", "xlsx"]
 )
+kurumsal_dosya = st.file_uploader(
+    "Kurumsal Fatura Yükleyin", type=["pdf", "xlsx", "csv"]
+)

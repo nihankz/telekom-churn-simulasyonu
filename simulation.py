@@ -100,7 +100,6 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
     if bireysel_dosya is not None:
       st.success("✅ Fatura başarıyla yüklendi.")
 
-    # ENTER / ANALİZ BUTONU
     if st.button("🚀 Faturayı Analiz Et & Hesapla", use_container_width=True):
       st.session_state.fatura_okundu = True
       st.success("🔍 Fatura başarıyla ayrıştırıldı!")
@@ -116,8 +115,6 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
         use_container_width=True,
     )
 
-  # HESAPLAMALARIN VE GRAFİKLERİN GÖRÜNMESİ İÇİN KOŞUL:
-  # Dosya yüklendiyse VEYA örnek butonuna basıldıysa VEYA analiz butonuna basıldıysa tetiklenir.
   if st.session_state.fatura_okundu or bireysel_dosya is not None:
     st.info("""
         🔍 **Fatura Özet Bilgisi:**
@@ -367,16 +364,33 @@ else:
         type=["pdf", "xlsx", "csv"],
         key="kurumsal",
     )
-    st.info(
-        "💡 Sistem, şirketteki tüm çalışan hatlarının kullanım oranlarını"
-        " tarayarak aşırı faturalandırılan veya atıl kalan hatları otomatik"
-        " tespit eder."
-    )
+
+    # DOSYA YÜKLENDİĞİNDE DİNAMİK OCR / VERİ ÇÖZÜMLEME SİMÜLASYONU
+    dinamik_hat_sayisi = 150
+    dinamik_ortalama_fatura = 480
+
+    if kurumsal_dosya is not None:
+      dosya_adi = kurumsal_dosya.name.lower()
+      # Dosya adına veya içeriğine göre dinamik parametre türetelim ki değişiklik hissedilsin
+      dinamik_hat_sayisi = 210 if "ornek" in dosya_adi else 180
+      dinamik_ortalama_fatura = 530
+      st.success(
+          f"✅ Kurumsal Fatura ({kurumsal_dosya.name}) başarıyla okundu! Tespit"
+            f" edilen aktif hat: {dinamik_hat_sayisi} adet."
+      )
+    else:
+      st.info(
+          "💡 Sistem, şirketteki tüm çalışan hatlarının kullanım oranlarını"
+          " tarayarak aşırı faturalandırılan veya atıl kalan hatları otomatik"
+          " tespit eder."
+      )
 
   with col_b2b2:
-    toplam_hat = st.number_input("Şirket Toplu Hat Sayısı", value=150, step=10)
+    toplam_hat = st.number_input(
+        "Şirket Toplu Hat Sayısı", value=dinamik_hat_sayisi, step=10
+    )
     ortalama_hat_maliyeti = st.number_input(
-        "Hat Başı Ortalama Fatura (TL)", value=480, step=20
+        "Hat Başı Ortalama Fatura (TL)", value=dinamik_ortalama_fatura, step=20
     )
 
   atıl_hat_orani = 0.28
@@ -425,3 +439,4 @@ else:
       st.success(
           "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!"
       )
+        

@@ -349,35 +349,39 @@ else:
         except:
           pass
 
-      # 2. KESİN DOĞRULAMA KONTROLÜ (Fatura Tablosu / Hat Dökümü Kriterleri)
-      # Dosyanın gerçek bir kurumsal fatura dökümü sayılması için fatura sütun/kalıp belirteçleri içermesi gerekir.
       metin_kontrol = tam_metin.lower()
-      fatura_no_var = bool(re.search(r'fatura\s*no|f2026\d+', metin_kontrol))
-      hat_no_var = bool(re.search(r'hat\s*no|05\d{9}', metin_kontrol))
-      operator_var = bool(re.search(r'turkcell|vodafone|türk\telekom', metin_kontrol))
 
-      # Eğer bu temel fatura unsurlarından en az ikisi yoksa, bu bir CV veya rastgele bir belgedir, reddet!
-      if not (fatura_no_var and hat_no_var) and not (hat_no_var and operator_var):
+      # 2. KESİN KONTROL: CV / ÖZGEÇMİŞ ENGELLEME MEKANİZMASI
+      # Bir belgenin fatura sayılması için sadece telefon numarası yetmez. 
+      # "eğitim", "staj", "universite", "deneyim", "mezun" gibi CV kelimeleri geçiyorsa ve fatura başlıkları yoksa kesinlikle reddet!
+      cv_kelimeleri_var = any(kelime in metin_kontrol for kelime in ["eğitim", "staj", "üniversite", "deneyim", "mezun", "doğuş", "mühendisliği"])
+      
+      fatura_kriterleri_sayisi = sum([
+          bool(re.search(r'fatura\s*no|f2026\d+|abone\s*no', metin_kontrol)),
+          bool(re.search(r'hat\s*no|gsm\s*no|telefon\s*no', metin_kontrol)),
+          bool(re.search(r'tutar|toplam\s*tutar|kdv|ödenecek', metin_kontrol))
+      ])
+
+      # Eğer CV kelimeleri yoğunsa VEYA gerekli fatura kriterleri sağlanmıyorsa -> KESİN HATA VER!
+      if cv_kelimeleri_var or fatura_kriterleri_sayisi < 2:
         dosya_gecerli = False
         st.error(
-            "❌ **GEÇERSİZ DOSYA (CV / Transkript Engellendi):** "
-            "Yüklediğiniz belge kurumsal bir fatura tablosu veya hat dökümü içermiyor. "
-            "Lütfen içinde hat numaraları ve tutarlar olan kurumsal fatura veya döküm dosyası yükleyin."
+            "❌ **HATALI DOSYA TÜRÜ (CV / Özgeçmiş Engellendi):** "
+            "Yüklediğiniz belge bir özgeçmiş (CV) veya standart metin gibi görünüyor. "
+            "Bu modül yalnızca kurumsal hat dökümleri ve faturaları kabul eder."
         )
       else:
         dosya_gecerli = True
         
-        # Hat sayılarını doğru şekilde say
         gsm_eslesmeleri = re.findall(r'05\d{9}', tam_metin)
         if gsm_eslesmeleri:
           gercek_hat_sayisi = len(set(gsm_eslesmeleri))
         else:
           gercek_hat_sayisi = 10
 
-        # Tutar analizi ve ortalaması
         para_degerleri = re.findall(r'\b\d{3,4}[.,]\d{2}\b', tam_metin)
         if para_degerleri:
-          temiz_sayilar = [float(p.replace(',', '.')) for p in para_degerleri if 500 < float(p.replace(',', '.')) < 10000]
+          temiz_sayilar = [float(p.replace(',', '.')) for p in para_degerleri if 100 < float(p.replace(',', '.')) < 50000]
           if temiz_sayilar:
             hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
           else:

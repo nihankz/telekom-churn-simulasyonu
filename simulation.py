@@ -96,9 +96,11 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
         type=["pdf", "csv", "xlsx"],
         key="bireysel",
     )
+
     if bireysel_dosya is not None:
       st.success("✅ Fatura başarıyla yüklendi.")
 
+    # ENTER / ANALİZ BUTONU
     if st.button("🚀 Faturayı Analiz Et & Hesapla", use_container_width=True):
       st.session_state.fatura_okundu = True
       st.success("🔍 Fatura başarıyla ayrıştırıldı!")
@@ -114,7 +116,9 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
         use_container_width=True,
     )
 
-  if st.session_state.fatura_okundu:
+  # HESAPLAMALARIN VE GRAFİKLERİN GÖRÜNMESİ İÇİN KOŞUL:
+  # Dosya yüklendiyse VEYA örnek butonuna basıldıysa VEYA analiz butonuna basıldıysa tetiklenir.
+  if st.session_state.fatura_okundu or bireysel_dosya is not None:
     st.info("""
         🔍 **Fatura Özet Bilgisi:**
         * **Mevcut Paket:** 35 GB Paket (Ana Bedel: 442 TL)
@@ -207,7 +211,7 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
   )
   net_npv_kazanc = npv_mevcut - npv_rakip
 
-  gb_maliyet_mevcut = yenileme_fiyat / gb_kullanim
+  gb_maliyet_mevcut = yenileme_fiyat / gb_kullanim if gb_kullanim > 0 else 0
   gb_maliyet_rakip = (
       rakip_fiyat / net_satin_alinmasi_gereken_gb
       if net_satin_alinmasi_gereken_gb > 0

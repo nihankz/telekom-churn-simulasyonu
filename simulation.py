@@ -317,8 +317,8 @@ else:
   col_b2b1, col_b2b2 = st.columns([2, 1])
 
   dosya_gecerli = False
-  gercek_hat_sayisi = 10
-  hesaplanan_ortalama_tutar = 1618.0
+  gercek_hat_sayisi = 0
+  hesaplanan_ortalama_tutar = 0.0
 
   with col_b2b1:
     kurumsal_dosya = st.file_uploader(
@@ -349,35 +349,45 @@ else:
         except:
           pass
 
-      # 2. ESNEK VE KESİN DOĞRULAMA: Sadece gerçek hat numaralarını (05 ile başlayan) veya Fatura kodlarını ara
-      gsm_eslesmeleri = re.findall(r'05\d{9}', tam_metin)
-      fatura_no_eslesmeleri = re.findall(r'f\d{8}|f2026\d+', tam_metin)
-      
-      toplam_bulunan = max(len(set(gsm_eslesmeleri)), len(set(fatura_no_eslesmeleri)))
+      # 2. KESİN DOĞRULAMA KONTROLÜ (Fatura Tablosu / Hat Dökümü Kriterleri)
+      # Dosyanın gerçek bir kurumsal fatura dökümü sayılması için fatura sütun/kalıp belirteçleri içermesi gerekir.
+      metin_kontrol = tam_metin.lower()
+      fatura_no_var = bool(re.search(r'fatura\s*no|f2026\d+', metin_kontrol))
+      hat_no_var = bool(re.search(r'hat\s*no|05\d{9}', metin_kontrol))
+      operator_var = bool(re.search(r'turkcell|vodafone|türk\telekom', metin_kontrol))
 
-      # Eğer yüklenen dosya gerçekten bir CV/Transkript ise ve hiç GSM/Fatura ID içermiyorsa reddet
-      # Ancak içinde F2026 veya 05... hatlar geçiyorsa doğrudan kabul et!
-      if toplam_bulunan == 0 and ("cv" in dosya_adi or "özgeçmiş" in dosya_adi or "transkript" in dosya_adi):
+      # Eğer bu temel fatura unsurlarından en az ikisi yoksa, bu bir CV veya rastgele bir belgedir, reddet!
+      if not (fatura_no_var and hat_no_var) and not (hat_no_var and operator_var):
         dosya_gecerli = False
         st.error(
-            "❌ **GEÇERSİZ DOSYA:** Yüklediğiniz belgede hat numaraları veya fatura kayıtları bulunamadı. "
-            "Lütfen şirket hat dökümü içeren bir dosya yükleyin."
+            "❌ **GEÇERSİZ DOSYA (CV / Transkript Engellendi):** "
+            "Yüklediğiniz belge kurumsal bir fatura tablosu veya hat dökümü içermiyor. "
+            "Lütfen içinde hat numaraları ve tutarlar olan kurumsal fatura veya döküm dosyası yükleyin."
         )
       else:
         dosya_gecerli = True
-        if toplam_bulunan > 0:
-          gercek_hat_sayisi = toplam_bulunan
+        
+        # Hat sayılarını doğru şekilde say
+        gsm_eslesmeleri = re.findall(r'05\d{9}', tam_metin)
+        if gsm_eslesmeleri:
+          gercek_hat_sayisi = len(set(gsm_eslesmeleri))
+        else:
+          gercek_hat_sayisi = 10
 
-        # Tutar analizi (örneğin 1548.90, 1232.40 gibi ondalıklı veya düz tutarları yakala)
+        # Tutar analizi ve ortalaması
         para_degerleri = re.findall(r'\b\d{3,4}[.,]\d{2}\b', tam_metin)
         if para_degerleri:
           temiz_sayilar = [float(p.replace(',', '.')) for p in para_degerleri if 500 < float(p.replace(',', '.')) < 10000]
           if temiz_sayilar:
             hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
+          else:
+            hesaplanan_ortalama_tutar = 1618.0
+        else:
+          hesaplanan_ortalama_tutar = 1618.0
 
         st.success(
-            f"✅ Kurumsal Fatura / Döküm ({kurumsal_dosya.name}) başarıyla doğrulandı. "
-            f"Tespit edilen net hat sayısı: {gercek_hat_sayisi}"
+            f"✅ Kurumsal Fatura / Döküm ({kurumsal_dosya.name}) başarıyla doğrulandı ve okundu! "
+            f"Tespit edilen hat sayısı: {gercek_hat_sayisi}"
         )
     else:
       dosya_gecerli = False

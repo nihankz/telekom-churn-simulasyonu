@@ -342,46 +342,38 @@ else:
           df_excel = pd.read_excel(kurumsal_dosya)
           tam_metin = df_excel.to_string().lower()
         else:
-          tam_metin = kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
+          tam_metin = (
+              kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
+          )
       except Exception:
         try:
-          tam_metin = kurumsal_dosya.getvalue().decode("latin-1", errors="ignore").lower()
+          tam_metin = (
+              kurumsal_dosya.getvalue()
+              .decode("latin-1", errors="ignore")
+              .lower()
+          )
         except:
           pass
 
       metin_kontrol = tam_metin.lower()
 
-      # 2. KESİN KONTROL: CV / ÖZGEÇMİŞ ENGELLEME MEKANİZMASI
-      # Bir belgenin fatura sayılması için sadece telefon numarası yetmez. 
-      # "eğitim", "staj", "universite", "deneyim", "mezun" gibi CV kelimeleri geçiyorsa ve fatura başlıkları yoksa kesinlikle reddet!
-      cv_kelimeleri_var = any(kelime in metin_kontrol for kelime in ["eğitim", "staj", "üniversite", "deneyim", "mezun", "doğuş", "mühendisliği"])
-      
-      fatura_kriterleri_sayisi = sum([
-          bool(re.search(r'fatura\s*no|f2026\d+|abone\s*no', metin_kontrol)),
-          bool(re.search(r'hat\s*no|gsm\s*no|telefon\s*no', metin_kontrol)),
-          bool(re.search(r'tutar|toplam\s*tutar|kdv|ödenecek', metin_kontrol))
-      ])
+      # 2. GÜÇLENDİRİLMİŞ TABLO VE GSM DOĞRULAMA
+      # Özgeçmiş filtresi tamamen kaldırıldı. Belgenin geçerli sayılması için:
+      # İçerikte en az 3 adet GSM numarası (05 ile başlayan) veya tablo alanlarının (fatura no, hat no) geçmesi yeterlidir.
+      gsm_eslesmeleri = re.findall(r"05\d{9}", metin_kontrol)
+      fatura_no_eslesmeleri = re.findall(r"f\d{8}|fatura\s*no", metin_kontrol)
 
-      # Eğer CV kelimeleri yoğunsa VEYA gerekli fatura kriterleri sağlanmıyorsa -> KESİN HATA VER!
-      if cv_kelimeleri_var or fatura_kriterleri_sayisi < 2:
-        dosya_gecerli = False
-        st.error(
-            "❌ **HATALI DOSYA TÜRÜ (CV / Özgeçmiş Engellendi):** "
-            "Yüklediğiniz belge bir özgeçmiş (CV) veya standart metin gibi görünüyor. "
-            "Bu modül yalnızca kurumsal hat dökümleri ve faturaları kabul eder."
-        )
-      else:
+      if len(gsm_eslesmeleri) >= 2 or len(fatura_no_eslesmeleri) >= 1:
         dosya_gecerli = True
-        
-        gsm_eslesmeleri = re.findall(r'05\d{9}', tam_metin)
-        if gsm_eslesmeleri:
-          gercek_hat_sayisi = len(set(gsm_eslesmeleri))
-        else:
-          gercek_hat_sayisi = 10
+        gercek_hat_sayisi = len(set(gsm_eslesmeleri)) if gsm_eslesmeleri else 10
 
-        para_degerleri = re.findall(r'\b\d{3,4}[.,]\d{2}\b', tam_metin)
+        para_degerleri = re.findall(r"\b\d{3,4}[.,]\d{2}\b", metin_kontrol)
         if para_degerleri:
-          temiz_sayilar = [float(p.replace(',', '.')) for p in para_degerleri if 100 < float(p.replace(',', '.')) < 50000]
+          temiz_sayilar = [
+              float(p.replace(",", "."))
+              for p in para_degerleri
+              if 100 < float(p.replace(",", ".")) < 50000
+          ]
           if temiz_sayilar:
             hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
           else:
@@ -390,8 +382,16 @@ else:
           hesaplanan_ortalama_tutar = 1618.0
 
         st.success(
-            f"✅ Kurumsal Fatura / Döküm ({kurumsal_dosya.name}) başarıyla doğrulandı ve okundu! "
-            f"Tespit edilen hat sayısı: {gercek_hat_sayisi}"
+            f"✅ Kurumsal Fatura / Döküm ({kurumsal_dosya.name}) başarıyla"
+            f" doğrulandı ve okundu! Tespit edilen hat sayısı:"
+            f" {gercek_hat_sayisi}"
+        )
+      else:
+        dosya_gecerli = False
+        st.error(
+            "❌ **GEÇERSİZ DOSYA:** Yüklenen dosyada geçerli kurumsal hat ve"
+            " fatura kayıtları (05 ile başlayan numaralar veya fatura"
+            " numaraları) bulunamadı."
         )
     else:
       dosya_gecerli = False

@@ -270,13 +270,10 @@ else:
         if st.button("⚙️ Tüm Hatları Otomatik Optimize Et (SaaS Motoru)", use_container_width=True):
             st.balloons()
             st.success("🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!")
-            # Hali hazırdaki kısıtlı haliyse:
-# yuklenen_dosya = st.file_uploader("Dosya Seçin")
-
-# PDF'i de kabul etmesini istiyorsan şu şekilde güncellemelisin:
-yuklenen_dosya = st.file_uploader(
-    "Bir dosya yükleyin", type=["pdf", "csv", "xlsx"]
+           bireysel_dosya = st.file_uploader(
+    "Bireysel Fatura Yükleyin", type=["pdf", "csv", "xlsx"], key="bireysel"
 )
+
 kurumsal_dosya = st.file_uploader(
-    "Kurumsal Fatura Yükleyin", type=["pdf", "xlsx", "csv"]
+    "Kurumsal Fatura Yükleyin", type=["pdf", "xlsx", "csv"], key="kurumsal"
 )

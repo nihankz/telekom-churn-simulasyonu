@@ -22,7 +22,7 @@ def set_template(gb):
 def simule_ocr_ornek():
     st.session_state.fatura_okundu = True
     st.session_state.gb_val = 12  # Kullanıcının fiili harcadığı
-    st.toast("📄 Örnek fatura verileri AI/OCR ile başarıyla okundu!", icon="✨")
+    st.toast("📄 Fatura ve gizli harcama kalemleri başarıyla tarandı!", icon="🔍")
 
 # --- ÖZEL CSS TASARIMI ---
 st.markdown("""
@@ -35,13 +35,12 @@ st.markdown("""
         border: 1px solid #374151;
         margin-bottom: 20px;
     }
-    .ocr-box {
-        background-color: #1e293b;
-        border: 2px dashed #3b82f6;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        margin-bottom: 20px;
+    .dark-pattern-card {
+        background-color: #2a1215;
+        border: 1px solid #ef4444;
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -50,12 +49,12 @@ st.markdown("""
 st.markdown("""
     <div class="hero-header">
         <h1 style='color: #F3F4F6; margin:0;'>📲 Akıllı Fatura & Taahhüt Otomasyon Portalı</h1>
-        <p style='color: #9CA3AF; margin-top: 5px; margin-bottom:0;'>AI Destekli Fatura OCR Teşhisi, Enflasyon Ayarlı NPV Analizi ve Otomatik Tasarruf</p>
+        <p style='color: #9CA3AF; margin-top: 5px; margin-bottom:0;'>AI Destekli Fatura Taraması, Gizli Zam Dedektörü ve NPV Tasarruf Analizi</p>
     </div>
 """, unsafe_allow_html=True)
 
-# --- FAZ 1: FATURA OCR & TEŞHİS MODÜLÜ ---
-st.subheader("📄 1. Akıllı Fatura Taraması & Yapay Zekâ Teşhisi")
+# --- FAZ 1: FATURA OCR & GİZLİ ZAM DEDEKTÖRÜ ---
+st.subheader("📄 1. Akıllı Fatura Taraması & Gizli Kalem Yakalayıcı")
 
 col_ocr1, col_ocr2 = st.columns([2, 1])
 
@@ -63,19 +62,37 @@ with col_ocr1:
     uploaded_file = st.file_uploader("E-Fatura PDF veya Görselini Yükleyin", type=['pdf', 'png', 'jpg', 'jpeg'])
     if uploaded_file is not None:
         st.session_state.fatura_okundu = True
-        st.success("✅ Fatura başarıyla yüklendi ve AI modelleriyle ayrıştırıldı.")
+        st.success("✅ Fatura başarıyla yüklendi ve ayrıştırıldı.")
 
 with col_ocr2:
-    st.write("Faturanız yok mu? Sistem analizi görmek için tek tıkla test edin:")
-    st.button("🪄 Örnek Fatura İle AI Analizi Başlat", on_click=simule_ocr_ornek, use_container_width=True)
+    st.write("Faturanız yok mu? Gizli zam yakalama simülasyonunu test edin:")
+    st.button("🔍 Örnek Faturada Gizli Zammı Yakala", on_click=simule_ocr_ornek, use_container_width=True)
 
 if st.session_state.fatura_okundu:
     st.info("""
-    🔍 **AI Teşhis Raporu:**
-    * **Tespit Edilen Paket:** 35 GB / Aylık 520 TL
-    * **Son 3 Ay Ortalama Harcanan:** **12 GB**
-    * **⚠️ Kritik Bulgular:** Paketinizin **%65'ini (23 GB)** hiç kullanmıyorsunuz. Operatörünüz ihtiyacınızdan daha yüksek bir paket tanımlamış.
+    🔍 **Fatura Özet Bilgisi:**
+    * **Mevcut Paket:** 35 GB Paket (Ana Bedel: 442 TL)
+    * **Son 3 Ay Ortalama Kullanım:** **12 GB** (Atıl Kapasite: %65)
     """)
+    
+    # GİZLİ ZAM VE DARK PATTERN UYARI KUTUSU
+    st.markdown("""
+    <div class="dark-pattern-card">
+        <h4 style='color: #F87171; margin-top:0;'>⚠️ 2 Adet Gizli Kalem / Çaktırmadan Eklenen Abonelik Yakalandı!</h4>
+        <p style='color: #FCA5A5; font-size:14px;'>Operatörünüz faturanıza onayınız dışında veya deneme süresi bittiği için otomatik ücretli servislere dönüştürülen kalemler eklemiş:</p>
+        <ul>
+            <li style='color: #F3F4F6;'><b>Dijital Servis / Müzik Aboneliği:</b> 49 TL / Ay</li>
+            <li style='color: #F3F4F6;'><b>Aşım Koruma Güvence Paketi:</b> 29 TL / Ay</li>
+        </ul>
+        <p style='color: #10B981; font-weight: bold;'>💡 Bu 2 kalemi iptal ettirerek HİÇ PAKET DEĞİŞTİRMEDEN yılda net 936 TL tasarruf edebilirsiniz!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.write("")
+    with st.expander("📞 Müşteri Hizmetlerini Aradığınızda Söyleyeceğiniz Hazır İptal Metni (Kopyala)"):
+        st.code("""
+"Merhaba, fatura detaylarımı incelediğimde bilgim/onayım dışında 'Dijital Servis Aboneliği (49 TL)' ve 'Aşım Koruma Paketi (29 TL)' adı altında aylık kesintiler yapıldığını fark ettim. Bu servislerin derhal iptal edilmesini ve hattıma tanımlanan bu ek ücretlerin kaldırılmasını talep ediyorum."
+        """, language="markdown")
 
 st.markdown("---")
 

@@ -1,61 +1,109 @@
 import streamlit as st
+import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 
-# Sayfa Ayarları (Mobil Uyumlu)
-st.set_page_config(page_title="Fatura & Taahhüt Asistanı", page_icon="📲", layout="centered")
+# Sayfa Ayarları
+st.set_page_config(
+    page_title="Telekom Financial Analytics Portal", 
+    page_icon="📊", 
+    layout="wide"
+)
 
-st.title("📲 Fatura & Taahhüt Akıllı Asistanı")
-st.write("Taahhüdünüz bitiyor mu? Yenilemeden önce 1 dakikada cebinizden çıkacak parayı hesaplayın.")
+st.title("📊 Telekomünikasyon Finansal Karar & Optimasyon Portalı")
+st.caption("Enflasyon ayarlanmış Net Bugünkü Değer (NPV), Birim GB Maliyet Eğrisi ve Sözleşme Risk Skoru Analizi")
+st.markdown("---")
+
+# --- GİRDİ PANELİ ---
+col_in1, col_in2, col_in3 = st.columns(3)
+
+with col_in1:
+    st.subheader("1. Sözleşme & Teklif")
+    mevcut_op = st.selectbox("Mevcut Operatör", ["Turkcell", "Vodafone", "Türk Telekom"])
+    yenileme_fiyat = st.number_input("Aylık Yenileme Teklifi (TL)", value=500, step=25)
+    rakip_fiyat = st.number_input("En İyi Rakip Fiyatı (TL)", value=340, step=25)
+
+with col_in2:
+    st.subheader("2. Cayma & Taahhüt")
+    cayma_bedeli = st.number_input("Mevcut Cayma Bedeli (TL)", value=600, step=50)
+    taahhut_ay = st.selectbox("Taahhüt Süresi (Ay)", [12, 24], index=0)
+    gb_kullanim = st.slider("Aylık Ortalama İnternet (GB)", 5, 100, 25)
+
+with col_in3:
+    st.subheader("3. Makroekonomik Parametreler")
+    enflasyon_beklentisi = st.slider("Yıllık Tahmini Enflasyon (%)", 0, 100, 35)
+    firsat_maliyeti = st.slider("Aylık İskonto / Faiz Oranı (%)", 0.0, 5.0, 2.0, step=0.5)
+
+# --- FİNANSAL ALGORİTMA (NPV & ENFLASYON AYARLAMASI) ---
+# Aylık iskonto oranı
+r = firsat_maliyeti / 100
+
+# Nakit Akışları Hesabı
+npv_mevcut = sum([yenileme_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)])
+npv_rakip = cayma_bedeli + sum([rakip_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)])
+
+net_npv_kazanc = npv_mevcut - npv_rakip
+gb_basa_maliyet_mevcut = yenileme_fiyat / gb_kullanim
+gb_basa_maliyet_rakip = rakip_fiyat / gb_kullanim
+
+# Risk Skoru Hesabı (0 - 100)
+risk_skoru = min(100, int((cayma_bedeli / (yenileme_fiyat * 2)) * 30 + (taahhut_ay / 12) * 40 + (enflasyon_beklentisi / 100) * 30))
 
 st.markdown("---")
 
-# 1. Kullanıcı Girdileri
-mevcut_op = st.selectbox("Şu an kullandığınız operatör:", ["Turkcell", "Vodafone", "Türk Telekom"])
+# --- SONUÇ PANELİ ---
+st.subheader("📈 Analitik Değerlendirme & Finansal Rapor")
 
-col1, col2 = st.columns(2)
-with col1:
-    yeni_teklif = st.number_input("Operatörün yeni dönem teklifi (TL/Ay):", value=450, step=10)
-    cayma_bedeli = st.number_input("Şu an ayrılırsanız cayma bedeli (TL):", value=0, step=50)
+m1, m2, m3, m4 = st.columns(4)
 
-with col2:
-    ihtiyac_gb = st.select_slider("Aylık Ortalama İnternet İhtiyacınız:", options=["10 GB", "15 GB", "20 GB", "30 GB", "Sınırsız"], value="20 GB")
-    taahhut_ay = st.radio("Düşündüğünüz Taahhüt Süresi:", [12, 24], horizontal=True)
+m1.metric(
+    label="Bugünkü Net Değer (NPV) Kazancı", 
+    value=f"{abs(net_npv_kazanc):,.0f} TL", 
+    delta="Rakip Avantajlı" if net_npv_kazanc > 0 else "Mevcut Avantajlı",
+    delta_color="normal" if net_npv_kazanc > 0 else "inverse"
+)
 
-# Piyasa Ortalama Fiyat Mantığı (Varsayımsal Paket Fiyatları)
-piyasa_fiyatlari = {
-    "10 GB": {"Turkcell": 280, "Vodafone": 220, "Türk Telekom": 210},
-    "15 GB": {"Turkcell": 340, "Vodafone": 270, "Türk Telekom": 250},
-    "20 GB": {"Turkcell": 420, "Vodafone": 320, "Türk Telekom": 300},
-    "30 GB": {"Turkcell": 520, "Vodafone": 410, "Türk Telekom": 390},
-    "Sınırsız": {"Turkcell": 750, "Vodafone": 600, "Türk Telekom": 580}
-}
+m2.metric(
+    label="Mevcut GB Başı Maliyet", 
+    value=f"{gb_basa_maliyet_mevcut:.2f} TL/GB"
+)
 
-# Rakip operatörlerin o paket için ortalama en iyi fiyatı
-rakip_fiyatlar = [v for k, v in piyasa_fiyatlari[ihtiyac_gb].items() if k != mevcut_op]
-en_iyi_rakip_fiyat = min(rakip_fiyatlar)
+m3.metric(
+    label="Rakip GB Başı Maliyet", 
+    value=f"{gb_basa_maliyet_rakip:.2f} TL/GB",
+    delta=f"-{(1 - gb_basa_maliyet_rakip/gb_basa_maliyet_mevcut)*100:.1f}%"
+)
 
-# Hesaplamalar
-aylik_fark = yeni_teklif - en_iyi_rakip_fiyat
-toplam_yillik_mevcut = yeni_teklif * taahhut_ay
-toplam_yillik_rakip = (en_iyi_rakip_fiyat * taahhut_ay) + cayma_bedeli
-net_tasarruf = toplam_yillik_mevcut - toplam_yillik_rakip
+m4.metric(
+    label="Sözleşme Risk Skoru", 
+    value=f"{risk_skoru} / 100",
+    help="Yüksek skor, yüksek enflasyon ve uzun taahhüt döneminde esnekliğinizi kaybettiğinizi gösterir."
+)
 
-st.markdown("---")
-st.subheader("🎉 Karar & Tasarruf Analiziniz")
+# --- GRAFİK KISMI ---
+st.markdown("### 📉 Zaman İçi Nakit Akışı & Maliyet Birikimi")
 
-if net_tasarruf > 0:
-    st.success(f"### 💡 Operatör Değiştirmek Mantıklı!")
-    st.markdown(f"""
-    * Rakip operatörlerde **{ihtiyac_gb}** paketleri ortalama **{en_iyi_rakip_fiyat} TL/Ay** seviyesinde.
-    * Cayma bedelini (**{cayma_bedeli} TL**) ödeseniz bile, **{taahhut_ay} ayda net {net_tasarruf:,.0f} TL** cebinizde kalıyor!
-    * Aylık ortalama tasarrufunuz: **{aylik_fark:.0f} TL/Ay**.
-    """)
+aylar = list(range(1, taahhut_ay + 1))
+kumulatif_mevcut = [sum([yenileme_fiyat / ((1 + r) ** i) for i in range(1, t + 1)]) for t in aylar]
+kumulatif_rakip = [cayma_bedeli + sum([rakip_fiyat / ((1 + r) ** i) for i in range(1, t + 1)]) for t in aylar]
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=aylar, y=kumulatif_mevcut, mode='lines+markers', name='Mevcut Operatör (Kumulatif NPV)', line=dict(color='#FF4B4B', width=3)))
+fig.add_trace(go.Scatter(x=aylar, y=kumulatif_rakip, mode='lines+markers', name='Rakip Operatör (Cayma Dahil NPV)', line=dict(color='#00CC96', width=3)))
+
+fig.update_layout(
+    title="Ay Bazında Finansal Yük & Başabaş (Break-Even) Analizi",
+    xaxis_title="Ay",
+    yaxis_title="Toplam Bugünkü Değer (TL)",
+    template="plotly_dark",
+    height=400
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Karar Özeti
+if net_npv_kazanc > 0:
+    st.success(f"🎯 **Finansal Model Tavesiyesi:** Enflasyon ve iskonto oranı hesaba katıldığında, cayma bedelini peşin ödeyip rakip operatöre geçmek dönemsel olarak net **{net_npv_kazanc:,.0f} TL bugünkü değer kazancı** sağlamaktadır.")
 else:
-    st.info(f"### 🛑 Mevcut Operatörünüzde Kalın!")
-    st.markdown(f"""
-    * Size sunulan **{yeni_teklif} TL** teklif, piyasadaki benzer **{ihtiyac_gb}** paketlerine göre oldukça avantajlı.
-    * Başka operatöre geçmek şu aşamada maliyetinizi artırır veya değmez.
-    """)
-
-st.caption("Fiyatlar genel piyasa ortalamalarına göre bilgilendirme amaçlı hesaplanmıştır.")
-  
+    st.warning(f"⚠️ **Finansal Model Tavsiyesi:** Peşin cayma bedeli yükü nedeniyle mevcut teklifi kabul etmek finansal açıdan daha rasyoneldir.")
+    

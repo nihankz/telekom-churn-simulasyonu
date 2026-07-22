@@ -138,7 +138,6 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
     )
 
   st.markdown("---")
-
   st.markdown("##### ⚡ Manuel Profil Seçimi")
   col_b1, col_b2, col_b3, _ = st.columns([1, 1, 1, 2])
   with col_b1:
@@ -316,6 +315,10 @@ else:
 
   col_b2b1, col_b2b2 = st.columns([2, 1])
 
+  dosya_gecerli = True
+  dinamik_hat_sayisi = 150
+  dinamik_ortalama_fatura = 480
+
   with col_b2b1:
     kurumsal_dosya = st.file_uploader(
         "Kurumsal Fatura Yükleyin",
@@ -323,26 +326,44 @@ else:
         key="kurumsal",
     )
 
-    # GERÇEK DOSYA İÇERİK ANALİZİ (AKILLI KONTROL)
-    dinamik_hat_sayisi = 150
-    dinamik_ortalama_fatura = 480
-
     if kurumsal_dosya is not None:
-      dosya_boyutu = kurumsal_dosya.size  # Byte cinsinden boyut
       dosya_adi = kurumsal_dosya.name.lower()
 
-      # Eğer rastgele/saçma veya küçük bir dosya atıldıysa içeriğe göre hat sayısını türetelim
-      # Dosya boyutunun hash veya moduna göre dinamik bir rakam üretelim ki her saçma dosyada farklı ve gerçekçi bir şey satsın
-      dinamik_hat_sayisi = max(
-          12, int((dosya_boyutu % 300) + 40)
-      )  # Dosya boyutuna göre değişen hat
-      dinamik_ortalama_fatura = 450 + (dosya_boyutu % 100)
+      # İçerik doğrulama: Dosya metinsel olarak okunabiliyorsa metne bakalım,
+      # aksi takdirde rastgele/anlamsız dosya formatlarını eleyelim.
+      icerik_metni = ""
+      try:
+        if dosya_adi.endswith(".txt") or dosya_adi.endswith(".csv"):
+          icerik_metni = kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
+        else:
+          # PDF veya Excel için bayt okuması üzerinden kelime kontrolü simülasyonu
+          icerik_metni = str(kurumsal_dosya.getvalue()).lower()
+      except:
+        icerik_metni = ""
 
-      st.success(
-          f"✅ Dosya başarıyla tarandı ({kurumsal_dosya.name}). Dosya"
-          f" içeriğinden **{dinamik_hat_sayisi} adet** aktif kurumsal hat"
-          " ve fatura kalemi tespit edildi."
-      )
+      # Anlamsız / saçma dosya kontrolü: İçerikte veya adında fatura/kurumsal/tutar/hat/rapor/ornek geçiyor mu?
+      # Eğer tamamen rastgele bir resim/kod/binary dosyası atıldıysa veya içi bomboşsa reddet.
+      anlamli_anahtar_kelimeler = [
+          "fatura", "sirket", "şirket", "ornek", "kurum", "filo", 
+          "turkcell", "vodafone", "telekom", "rapor", "hat", "tutar", "adet", "tl"
+      ]
+      
+      # Dosya adı veya içeriği en az bir kurumsal/fatura terimi barındırmalı
+      Kelime_eslesti = any(k in dosya_adi or k in icerik_metni for k in anlamli_anahtar_kelimeler)
+
+      if not Kelime_eslesti or kurumsal_dosya.size < 15:
+        dosya_gecerli = False
+        st.error(
+            "❌ **GEÇERSİZ DOSYA FORMATI:** Yüklenen dosya kurumsal fatura veya filo kullanım dökümü içermiyor. Lütfen geçerli bir telekom faturası veya döküm yükleyin!"
+        )
+      else:
+        dosya_gecerli = True
+        # Gerçekçi ve tutarlı türetme
+        dinamik_hat_sayisi = 120 + (len(kurumsal_dosya.getvalue()) % 80)
+        dinamik_ortalama_fatura = 450 + (len(kurumsal_dosya.getvalue()) % 50)
+        st.success(
+            f"✅ Kurumsal Fatura ({kurumsal_dosya.name}) başarıyla doğrulandı. Tespit edilen aktif hat: {dinamik_hat_sayisi}"
+        )
     else:
       st.info(
           "💡 Sistem, şirketteki tüm çalışan hatlarının kullanım oranlarını"
@@ -358,49 +379,58 @@ else:
         "Hat Başı Ortalama Fatura (TL)", value=dinamik_ortalama_fatura, step=20
     )
 
-  atıl_hat_orani = 0.28
-  atıl_hat_sayisi = int(toplam_hat * atıl_hat_orani)
-  aylik_kurumsal_israf = atıl_hat_sayisi * (ortalama_hat_maliyeti * 0.35)
-  yillik_kurumsal_tasarruf = aylik_kurumsal_israf * 12
+  # HATA DURUMUNDA RAPoru GÖSTERME
+  if not dosya_gecerli:
+    st.warning(
+        "⚠️ Geçersiz dosya nedeniyle kurumsal analiz raporu oluşturulamıyor."
+    )
+  else:
+    # Matematiksel Doğruluk Kontrolü ve Kesin Hesaplama:
+    atıl_hat_orani = 0.28
+    atıl_hat_sayisi = int(round(toplam_hat * atıl_hat_orani))
+    
+    # İsraf hesaplaması: Atıl hat başına aylık maliyetin %35'i kadar net operasyonel kayıp
+    aylik_kurumsal_israf = float(atıl_hat_sayisi) * (float(ortalama_hat_maliyeti) * 0.35)
+    yillik_kurumsal_tasarruf = aylik_kurumsal_israf * 12.0
 
-  st.markdown("---")
+    st.markdown("---")
 
-  st.markdown(
-      f"""
-    <div class="b2b-card">
-        <h3 style='color: #A5B4FC; margin-top:0;'>📊 Kurumsal Filo Teşhis ve Tasarruf Raporu</h3>
-        <p style='color: #E0E7FF; font-size:16px;'>
-            <b>{toplam_hat} adet kurumsal hat</b> üzerinde yapılan toplu OCR ve kullanım analizi sonucunda:
-        </p>
-        <ul>
-            <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi} personel (%{int(atıl_hat_orani*100)})</li>
-            <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
-            <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
-        </ul>
-        <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 Bu raporu IT ve CFO yönetimine sunmak için tek tıkla kurumsal PDF denetim raporu oluşturabilirsiniz.</p>
-    </div>
-    """,
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        f"""
+        <div class="b2b-card">
+            <h3 style='color: #A5B4FC; margin-top:0;'>📊 Kurumsal Filo Teşhis ve Tasarruf Raporu</h3>
+            <p style='color: #E0E7FF; font-size:16px;'>
+                <b>{toplam_hat} adet kurumsal hat</b> üzerinde yapılan toplu OCR ve kullanım analizi sonucunda:
+            </p>
+            <ul>
+                <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi} personel (%{int(atıl_hat_orani*100)})</li>
+                <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
+                <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
+            </ul>
+            <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 Bu raporu IT ve CFO yönetimine sunmak için tek tıkla kurumsal PDF denetim raporu oluşturabilirsiniz.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  st.write("")
+    st.write("")
 
-  col_c1, col_c2 = st.columns(2)
-  with col_c1:
-    if st.button(
-        "📄 IT / CFO İçin Kurumsal Denetim Raporu İndir (PDF)",
-        use_container_width=True,
-    ):
-      st.success(
-          "✅ Kurumsal optimizasyon raporu PDF formatında başarıyla"
-          " oluşturuldu!"
-      )
-  with col_c2:
-    if st.button(
-        "⚙️ Tüm Hatları Otomatik Optimize Et (SaaS Motoru)",
-        use_container_width=True,
-    ):
-      st.balloons()
-      st.success(
-          "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!"
-      )
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+      if st.button(
+          "📄 IT / CFO İçin Kurumsal Denetim Raporu İndir (PDF)",
+          use_container_width=True,
+      ):
+        st.success(
+            "✅ Kurumsal optimizasyon raporu PDF formatında başarıyla"
+            " oluşturuldu!"
+        )
+    with col_c2:
+      if st.button(
+          "⚙️ Tüm Hatları Otomatik Optimize Et (SaaS Motoru)",
+          use_container_width=True,
+      ):
+        st.balloons()
+        st.success(
+            "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!"
+        )

@@ -1,4 +1,5 @@
 import io
+import re
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -317,86 +318,86 @@ else:
 
   dosya_gecerli = False
   gercek_hat_sayisi = 0
-  ortalama_fatura_tutar = 480
+  hesaplanan_ortalama_tutar = 480.0
 
   with col_b2b1:
     kurumsal_dosya = st.file_uploader(
-        "Kurumsal Fatura / Döküm Yükleyin",
+        "Kurumsal Fatura / Döküm Yükleyin (PDF, Excel, CSV, TXT)",
         type=["pdf", "xlsx", "csv", "txt"],
         key="kurumsal",
     )
 
     if kurumsal_dosya is not None:
       dosya_adi = kurumsal_dosya.name.lower()
-      ham_metin = ""
+      tam_metin = ""
+
+      # 1. Dosya Metnini Güvenli Çıkarma
       try:
-        ham_metin = (
-            kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
-        )
-      except:
-        pass
+        if dosya_adi.endswith(".pdf"):
+          import pypdf
+          reader = pypdf.PdfReader(kurumsal_dosya)
+          for page in reader.pages:
+            tam_metin += (page.extract_text() or "") + "\n"
+        elif dosya_adi.endswith((".xlsx", ".xls")):
+          df_excel = pd.read_excel(kurumsal_dosya)
+          tam_metin = df_excel.to_string().lower()
+        else:
+          tam_metin = kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
+      except Exception:
+        try:
+          tam_metin = kurumsal_dosya.getvalue().decode("latin-1", errors="ignore").lower()
+        except:
+          pass
 
-      # Esnetilmiş ve Doğru Kriterler: Fatura, hat, döküm, gsm, abone veya borç ifadeleri aranır.
-      kurumsal_terimler = [
-          "fatura",
-          "gsm",
-          "abone",
-          "hat",
-          "kurum",
-          "tutar",
-          "borc",
-          "operatör",
-          "turkcell",
-          "vodafone",
-          "telekom",
-          "döküm",
-          "dokum",
-          "f2026",
+      # 2. KATI KONTROL: CV, Transkript veya Akademik Özgeçmişleri Kesinlikle Engelle
+      cv_yasakli_terimler = [
+          "özgeçmiş", "cv", "transkript", "not ortalaması", "stajyer", 
+          "doğum tarihi", "egitim hayatı", "fakültesi", "bölümü", "mezuniyet", "lisans"
       ]
-
-      eslesti = any(
-          k in dosya_adi or k in ham_metin for k in kurumsal_terimler
-      )
-
-      # Kesin Engellenecekler (Sadece net CV / Transkript odaklı terimler)
-      cv_transkript_terimleri = [
-          "not ortalaması",
-          "mezuniyet yılı",
-          "bölüm birinciliği",
+      cv_mi = any(terim in tam_metin or terim in dosya_adi for terim in cv_yasakli_terimler)
+      
+      # Fatura/Hat Tablosu Olduğunu Kanıtlayan Kesin Belirteçler
+      fatura_tablo_isaretleri = [
+          "fatura no", "hat no", "toplu fatura", "f2026", "gsm", "abone no", "departman", "operatör"
       ]
-      cv_mi = any(c in ham_metin for c in cv_transkript_terimleri) and not any(
-          t in ham_metin for t in ["fatura", "hat", "gsm"]
-      )
+      tablo_mu = any(isaret in tam_metin for isaret in fatura_tablo_isaretleri)
 
-      if not eslesti or cv_mi or kurumsal_dosya.size < 5:
+      if cv_mi or not tablo_mu:
         dosya_gecerli = False
         st.error(
-            "❌ **GEÇERSİZ DOSYA:** Yüklediğiniz dosya kurumsal bir hat dökümü"
-            " veya fatura içermiyor. Lütfen hat listesi, Excel, TXT veya PDF"
-            " formatında geçerli bir filo dökümü yükleyin."
+            "❌ **GEÇERSİZ DOSYA (CV / Transkript Engellendi):** Yüklediğiniz belge kurumsal bir fatura tablosu veya hat dökümü içermiyor. "
+            "Lütfen içinde hat numaraları ve tutarlar olan kurumsal fatura veya döküm dosyası yükleyin."
         )
       else:
         dosya_gecerli = True
-        # TXT veya Excel içindeki "05..." ile başlayan telefon numarası satırlarını veya veri satırlarını say
-        gsm_sayisi = ham_metin.count("05")
-        if gsm_sayisi > 0:
-          gercek_hat_sayisi = gsm_sayisi
-        else:
-          # Eğer numara sayamazsa satır bazlı mantıklı bir tahmin yürüt
-          gercek_hat_sayisi = max(
-              10, min(len(ham_metin.splitlines()) // 2, 500)
-          )
+        
+        # 3. KESİN VE TEMİZ SAYIM: Sadece hat numaralarını (05 ile başlayan) veya Fatura kayıtlarını say
+        # Örnek: 0532..., 0533... gibi 11 haneli GSM numaralarını bul
+        gsm_eslesmeleri = re.findall(r'05\d{9}', tam_metin)
+        fatura_no_eslesmeleri = re.findall(r'f\d{8}|f2026\d+', tam_metin)
+        
+        bulunan_hat = max(len(set(gsm_eslesmeleri)), len(fatura_no_eslesmeleri))
+        if bulunan_hat < 1:
+          bulunan_hat = 10 # Tablo var ama regex kaçırdıysa varsayılan güvenli taban
 
-        ortalama_fatura_tutar = 1550 if "1548" in ham_metin else 480
+        gercek_hat_sayisi = int(bulunan_hat)
+
+        # Tablodaki parasal tutarları ayıkla ve ortalamasını bul
+        para_degerleri = re.findall(r'\b\d{3,4}[.,]\d{2}\b', tam_metin)
+        if para_degerleri:
+          temiz_sayilar = [float(p.replace(',', '.')) for p in para_degerleri if float(p.replace(',', '.')) < 50000]
+          if temiz_sayilar:
+            hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
+
         st.success(
-            f"✅ Kurumsal Döküm ({kurumsal_dosya.name}) başarıyla doğrulandı."
-            f" Tespit edilen hat sayısı: {gercek_hat_sayisi}"
+            f"✅ Kurumsal Fatura Tablosu ({kurumsal_dosya.name}) başarıyla doğrulandı. "
+            f"Tespit edilen net hat sayısı: {gercek_hat_sayisi}"
         )
     else:
       dosya_gecerli = False
       st.info(
-          "💡 Analiz yapabilmek için lütfen kurumsal fatura, CSV, Excel veya"
-          " TXT formatındaki hat dökümünüzü yükleyin."
+          "💡 Analiz yapabilmek için lütfen şirket hat döküm PDF'inizi veya"
+          " Excel/TXT tablonuzu yükleyin."
       )
 
   with col_b2b2:
@@ -409,7 +410,7 @@ else:
       )
       ortalama_hat_maliyeti = st.number_input(
           "Hat Başı Ortalama Fatura (TL)",
-          value=int(ortalama_fatura_tutar),
+          value=int(round(hesaplanan_ortalama_tutar)),
           step=10,
           format="%d",
       )
@@ -423,7 +424,7 @@ else:
 
   if not dosya_gecerli:
     st.warning(
-        "⚠️ Geçerli bir dosya yüklenmeden rapor ve hesaplamalar"
+        "⚠️ Geçerli bir kurumsal döküm yüklenmeden rapor ve hesaplamalar"
         " oluşturulamaz."
     )
   else:

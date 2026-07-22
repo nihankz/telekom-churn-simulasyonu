@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- SESSION STATE (ŞABLON VE OCR VERİLERİ) ---
+# --- SESSION STATE ---
 if 'gb_val' not in st.session_state:
     st.session_state.gb_val = 25
 if 'fatura_okundu' not in st.session_state:
@@ -21,7 +21,7 @@ def set_template(gb):
 
 def simule_ocr_ornek():
     st.session_state.fatura_okundu = True
-    st.session_state.gb_val = 12  # Kullanıcının fiili harcadığı
+    st.session_state.gb_val = 20  # Kullanıcının fiili harcadığı
     st.toast("📄 Fatura ve gizli harcama kalemleri başarıyla tarandı!", icon="🔍")
 
 # --- ÖZEL CSS TASARIMI ---
@@ -42,6 +42,13 @@ st.markdown("""
         border-radius: 8px;
         margin-top: 10px;
     }
+    .gift-card {
+        background-color: #064e3b;
+        border: 1px solid #10b981;
+        padding: 14px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -49,7 +56,7 @@ st.markdown("""
 st.markdown("""
     <div class="hero-header">
         <h1 style='color: #F3F4F6; margin:0;'>📲 Akıllı Fatura & Taahhüt Otomasyon Portalı</h1>
-        <p style='color: #9CA3AF; margin-top: 5px; margin-bottom:0;'>AI Destekli Fatura Taraması, Gizli Zam Dedektörü ve NPV Tasarruf Analizi</p>
+        <p style='color: #9CA3AF; margin-top: 5px; margin-bottom:0;'>AI Destekli Fatura Taraması, Gizli Zam Dedektörü ve Hediye GB Optimizasyonu</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -65,34 +72,27 @@ with col_ocr1:
         st.success("✅ Fatura başarıyla yüklendi ve ayrıştırıldı.")
 
 with col_ocr2:
-    st.write("Faturanız yok mu? Gizli zam yakalama simülasyonunu test edin:")
-    st.button("🔍 Örnek Faturada Gizli Zammı Yakala", on_click=simule_ocr_ornek, use_container_width=True)
+    st.write("Faturanız yok mu? Gizli zam ve hediye GB simülasyonunu test edin:")
+    st.button("🔍 Örnek Faturada Analiz Yap", on_click=simule_ocr_ornek, use_container_width=True)
 
 if st.session_state.fatura_okundu:
     st.info("""
     🔍 **Fatura Özet Bilgisi:**
     * **Mevcut Paket:** 35 GB Paket (Ana Bedel: 442 TL)
-    * **Son 3 Ay Ortalama Kullanım:** **12 GB** (Atıl Kapasite: %65)
+    * **Son 3 Ay Ortalama Kullanım:** **20 GB**
     """)
     
-    # GİZLİ ZAM VE DARK PATTERN UYARI KUTUSU
+    # GİZLİ ZAM UYARI KUTUSU (Kurumsal Dille Güncellendi)
     st.markdown("""
     <div class="dark-pattern-card">
-        <h4 style='color: #F87171; margin-top:0;'>⚠️ 2 Adet Gizli Kalem / Çaktırmadan Eklenen Abonelik Yakalandı!</h4>
-        <p style='color: #FCA5A5; font-size:14px;'>Operatörünüz faturanıza onayınız dışında veya deneme süresi bittiği için otomatik ücretli servislere dönüştürülen kalemler eklemiş:</p>
+        <h4 style='color: #F87171; margin-top:0;'>⚠️ 2 Adet Onaysız / Şeffaf Olmayan Yan Hizmet Kalemi Tespit Edildi!</h4>
         <ul>
             <li style='color: #F3F4F6;'><b>Dijital Servis / Müzik Aboneliği:</b> 49 TL / Ay</li>
             <li style='color: #F3F4F6;'><b>Aşım Koruma Güvence Paketi:</b> 29 TL / Ay</li>
         </ul>
-        <p style='color: #10B981; font-weight: bold;'>💡 Bu 2 kalemi iptal ettirerek HİÇ PAKET DEĞİŞTİRMEDEN yılda net 936 TL tasarruf edebilirsiniz!</p>
+        <p style='color: #10B981; font-weight: bold; margin-bottom:0;'>💡 Bu 2 ek kalemi iptal ettirerek HİÇ PAKET DEĞİŞTİRMEDEN yılda net 936 TL tasarruf edebilirsiniz!</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.write("")
-    with st.expander("📞 Müşteri Hizmetlerini Aradığınızda Söyleyeceğiniz Hazır İptal Metni (Kopyala)"):
-        st.code("""
-"Merhaba, fatura detaylarımı incelediğimde bilgim/onayım dışında 'Dijital Servis Aboneliği (49 TL)' ve 'Aşım Koruma Paketi (29 TL)' adı altında aylık kesintiler yapıldığını fark ettim. Bu servislerin derhal iptal edilmesini ve hattıma tanımlanan bu ek ücretlerin kaldırılmasını talep ediyorum."
-        """, language="markdown")
 
 st.markdown("---")
 
@@ -121,14 +121,18 @@ with col_in2:
     st.subheader("3. Cayma & Kullanım")
     cayma_bedeli = st.number_input("Erken Ayrılma / Cayma Bedeli (TL)", value=450, step=50)
     taahhut_ay = st.radio("Taahhüt Süresi (Ay)", [12, 24], horizontal=True)
-    gb_kullanim = st.slider("Fiili / Gerçek İnternet İhtiyacı (GB)", 5, 100, key="gb_val")
+    gb_kullanim = st.slider("Aylık Toplam İnternet Tüketiminiz (GB)", 5, 100, key="gb_val")
 
 with col_in3:
-    st.subheader("4. Makro Parametreler")
+    st.subheader("4. 🎁 Hediye GB & Enflasyon")
+    hediye_gb = st.slider("Çark / Salla Kazan / Sil Süpür'den Aylık Ortalama Hediye (GB)", 0, 20, 8)
     enflasyon_beklentisi = st.slider("Tahmini Yıllık Enflasyon (%)", 10, 80, 35)
     firsat_maliyeti = st.slider("Aylık İskonto / Faiz Oranı (%)", 0.0, 5.0, 2.0, step=0.5)
 
-# --- FİNANSAL ALGORİTMA ---
+# --- HEDİYE GB OPTİMİZASYON HESABI ---
+net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
+
+# FİNANSAL ALGORİTMA
 r = firsat_maliyeti / 100
 
 npv_mevcut = sum([yenileme_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)])
@@ -136,7 +140,7 @@ npv_rakip = cayma_bedeli + sum([rakip_fiyat / ((1 + r) ** t) for t in range(1, t
 net_npv_kazanc = npv_mevcut - npv_rakip
 
 gb_maliyet_mevcut = yenileme_fiyat / gb_kullanim
-gb_maliyet_rakip = rakip_fiyat / gb_kullanim
+gb_maliyet_rakip = rakip_fiyat / net_satin_alinmasi_gereken_gb if net_satin_alinmasi_gereken_gb > 0 else 0
 
 if net_npv_kazanc > 1000:
     st.balloons()
@@ -145,6 +149,21 @@ st.markdown("---")
 
 # --- ANALİZ VE GRAFİK EKRANI ---
 st.subheader("📊 Analitik Karar & Karşılaştırma Raporu")
+
+# HEDİYE GB VURUCU KART
+if hediye_gb > 0:
+    st.markdown(f"""
+    <div class="gift-card">
+        <h4 style='color: #6EE7B7; margin-top:0;'>🎁 Hediye GB Optimizasyon Teşhisi</h4>
+        <p style='color: #ECFDF5; font-size:15px; margin-bottom:0;'>
+            Aylık <b>{gb_kullanim} GB</b> ihtiyacınızın <b>{hediye_gb} GB</b> kadarlık kısmını Çark / Salla Kazan / Sil Süpür ile ücretsiz karşılıyorsunuz. 
+            Operatörden satın almanız gereken <b>gerçek paket büyüklüğü sadece {net_satin_alinmasi_gereken_gb} GB!</b> 
+            Bu sayede bir alt pakete geçerek faturanızı düşürebilirsiniz.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.write("")
 
 c_left, c_right = st.columns([1, 1])
 
@@ -175,12 +194,12 @@ with c_right:
     
     m1, m2 = st.columns(2)
     m1.metric("Mevcut GB Başı Maliyet", f"{gb_maliyet_mevcut:.2f} TL/GB")
-    m2.metric("Rakip GB Başı Maliyet", f"{gb_maliyet_rakip:.2f} TL/GB", delta=f"-{(1 - gb_maliyet_rakip/gb_maliyet_mevcut)*100:.1f}%")
+    m2.metric("Optimizasyonlu GB Başı Maliyet", f"{gb_maliyet_rakip:.2f} TL/GB", delta=f"-{(1 - gb_maliyet_rakip/gb_maliyet_mevcut)*100:.1f}%" if gb_maliyet_mevcut > 0 else None)
     
     st.markdown("---")
     
     if net_npv_kazanc > 0:
-        st.success(f"🔥 **AŞIRI TASARRUF FIRSATI:** Cayma bedelini ödeyip gerçek ihtiyacınıza uygun rakip pakete geçmek, **{taahhut_ay} ayda net {net_npv_kazanc:,.0f} TL** cebinizde bırakıyor!")
+        st.success(f"🔥 **AŞIRI TASARRUF FIRSATI:** Cayma bedelini ödeyip hediye GB'larınızla optimize edilmiş rakip pakete geçmek, **{taahhut_ay} ayda net {net_npv_kazanc:,.0f} TL** cebinizde bırakıyor!")
     else:
         st.info("🛡️ **KORUMA:** Cayma bedeli yüksek olduğu için mevcut teklifte kalmak şu an daha rasyonel.")
 

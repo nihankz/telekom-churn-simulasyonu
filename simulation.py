@@ -332,8 +332,7 @@ with c_right:
         m2.metric(
             "Optimizasyonlu GB Başı Maliyet", f"{gb_maliyet_rakip:.2f} TL/GB"
         )
-
-    aylar = list(range(1, taahhut_ay + 1))
+aylar = list(range(1, taahhut_ay + 1))
     kumulatif_mevcut = [
         sum([yenileme_fiyat / ((1 + r) ** i) for i in range(1, t + 1)])
         for t in aylar

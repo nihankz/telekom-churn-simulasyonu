@@ -289,8 +289,8 @@ Eksik sütunlar: {", ".join(sorted(missing))}
     
     kolon = "Bu Ay (TL)"
     df[kolon] = pd.to_numeric(df[kolon], errors="coerce")
-        toplam_tutar = df[kolon].sum()
-        ortalama = df[kolon].mean()
+    toplam_tutar = df[kolon].sum()
+    ortalama = df[kolon].mean()
 
     if not sayisal.empty and kolon:
         # ===========================

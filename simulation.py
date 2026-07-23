@@ -1,7 +1,7 @@
 import io
-import re
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -176,35 +176,97 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
 
     col_in1, col_in2, col_in3 = st.columns(3)
 
-    with col_in1:
-        st.subheader("2. Sözleşme & Teklif")
-        mevcut_op = st.selectbox(
-            "Mevcut Operatörünüz", ["Turkcell", "Vodafone", "Türk Telekom"]
-        )
-        yenileme_fiyat = st.number_input(
-            "Aylık Yenileme Teklifi (TL)", value=520, step=20
-        )
-        rakip_fiyat = st.number_input("En İyi Rakip Fiyatı (TL)", value=310, step=20)
+    col1,col2,col3,col4 = st.columns(4)
 
-    with col_in2:
-        st.subheader("3. Cayma & Kullanım")
-        cayma_bedeli = st.number_input(
-            "Erken Ayrılma / Cayma Bedeli (TL)", value=450, step=50
-        )
-        taahhut_ay = st.radio("Taahhüt Süresi (Ay)", [12, 24], horizontal=True)
-        gb_kullanim = st.slider(
-            "Aylık Toplam İnternet Tüketiminiz (GB)", 5, 100, key="gb_val"
-        )
+with col1:
+    mevcut_op = st.selectbox(
+        "Operatör",
+        ["Turkcell","Vodafone","Türk Telekom"]
+    )
 
-    with col_in3:
-        st.subheader("4. 🎁 Hediye GB & Enflasyon")
-        hediye_gb = st.slider(
-            "Çark / Salla Kazan / Sil Süpür'den Aylık Ortalama Hediye (GB)", 0, 20, 8
-        )
-        enflasyon_beklentisi = st.slider("Tahmini Yıllık Enflasyon (%)", 10, 80, 35)
-        firsat_maliyeti = st.slider(
-            "Aylık İskonto / Faiz Oranı (%)", 0.0, 5.0, 2.0, step=0.5
-        )
+with col2:
+    yenileme_fiyat = st.number_input(
+        "Aylık Fatura",
+        min_value=50,
+        value=520,
+        step=10
+    )
+
+with col3:
+    rakip_fiyat = st.number_input(
+        "Rakip Teklifi",
+        min_value=50,
+        value=310,
+        step=10
+    )
+
+with col4:
+    cayma_bedeli = st.number_input(
+        "Cayma Bedeli",
+        min_value=0,
+        value=450,
+        step=50
+    )
+
+st.divider()
+
+sol,sag = st.columns(2)
+
+with sol:
+
+    taahhut_ay = st.select_slider(
+        "Taahhüt",
+        options=[12,24],
+        value=12
+    )
+
+    gb_kullanim = st.slider(
+        "Aylık Kullanım (GB)",
+        1,
+        100,
+        st.session_state.gb_val
+    )
+
+with sag:
+st.subheader("📈 Karar Özeti")
+
+k1,k2,k3,k4 = st.columns(4)
+
+k1.metric(
+    "Mevcut Fatura",
+    f"{yenileme_fiyat:.0f} TL"
+)
+
+k2.metric(
+    "Rakip Teklifi",
+    f"{rakip_fiyat:.0f} TL"
+)
+
+k3.metric(
+    "NPV Kazancı",
+    f"{net_npv_kazanc:,.0f} TL"
+)
+
+tasarruf = max(0,(yenileme_fiyat-rakip_fiyat)*12-cayma_bedeli)
+
+k4.metric(
+    "Yıllık Tasarruf",
+    f"{tasarruf:,.0f} TL"
+)
+    hediye_gb = st.slider(
+        "Aylık Hediye GB",
+        0,
+        20,
+        8
+    )
+
+    firsat_maliyeti = st.slider(
+        "İskonto Oranı (%)",
+        0.0,
+        5.0,
+        2.0,
+        step=0.5
+    )
 
     net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
     r = firsat_maliyeti / 100
@@ -320,176 +382,133 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
     st.plotly_chart(fig_line, use_container_width=True)
 
 else:
-    # --- 🏢 B2B KURUMSAL FİLO YÖNETİMİ MODÜLÜ ---
-    st.subheader("🏢 Toplu Kurumsal Hat Analizi & Maliyet Optimizasyonu")
+    # ==========================
+# B2B KURUMSAL ANALİZ
+# ==========================
 
-    st.markdown(
-        """
-        <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Çoklu hat ve dosya tarama motoru aktif; Excel satırları ve tüm metin tabanlı dökümlerdeki hatlar eksiksiz sayılır.
-        </div>
-        """,
-        unsafe_allow_html=True,
+st.subheader("🏢 Kurumsal Filo Analizi")
+
+dosya = st.file_uploader(
+    "Excel veya CSV yükleyin",
+    type=["xlsx", "xls", "csv"],
+    key="kurumsal"
+)
+
+if dosya:
+
+    if dosya.name.endswith(("xlsx","xls")):
+        df = pd.read_excel(dosya)
+    else:
+        df = pd.read_csv(dosya)
+
+    df = df.dropna(how="all")
+
+    st.success(f"✅ {len(df)} kayıt başarıyla okundu.")
+
+    st.dataframe(df, use_container_width=True)
+
+    toplam_hat = len(df)
+
+    sayisal = df.select_dtypes(include=np.number)
+
+    toplam_tutar = 0
+    ortalama = 0
+
+    if len(sayisal.columns):
+
+        kolon = sayisal.columns[0]
+
+        toplam_tutar = df[kolon].sum()
+
+        ortalama = df[kolon].mean()
+
+    c1,c2,c3 = st.columns(3)
+
+    c1.metric(
+        "Toplam Hat",
+        f"{toplam_hat:,}"
     )
 
-    col_b2b1, col_b2b2 = st.columns([2, 1])
+    c2.metric(
+        "Toplam Tutar",
+        f"{toplam_tutar:,.0f} TL"
+    )
 
-    dosya_gecerli = False
-    otomatik_tespit_hat_sayisi = 1
-    hesaplanan_ortalama_tutar = 1500.0
+    c3.metric(
+        "Ortalama",
+        f"{ortalama:,.0f} TL"
+    )
 
-    with col_b2b1:
-        kurumsal_dosya = st.file_uploader(
-            "Kurumsal Fatura / Döküm Dosyası Yükleyin (Excel, CSV, TXT, PDF)",
-            type=["xlsx", "xls", "csv", "txt", "pdf"],
-            key="kurumsal",
+    st.divider()
+
+    st.subheader("📊 Sütun Analizi")
+
+    kategorik = list(df.select_dtypes(include="object").columns)
+
+    if kategorik:
+
+        sec = st.selectbox(
+            "Kategori",
+            kategorik
         )
 
-        tam_metin = ""
-        if kurumsal_dosya is not None:
-            dosya_adi = kurumsal_dosya.name.lower()
-            dosya_icerigi = kurumsal_dosya.getvalue()
-
-            try:
-                # Excel Dosyaları
-                if dosya_adi.endswith((".xlsx", ".xls")):
-                    df_excel = pd.read_excel(io.BytesIO(dosya_icerigi))
-                    tam_metin = df_excel.to_string()
-                    otomatik_tespit_hat_sayisi = (
-                        len(df_excel) if len(df_excel) > 0 else 1
-                    )
-                # Metin, CSV veya PDF Dökümleri
-                else:
-                    try:
-                        tam_metin = dosya_icerigi.decode("utf-8")
-                    except:
-                        tam_metin = dosya_icerigi.decode(
-                            "latin-1", errors="ignore"
-                        )
-            except Exception as e:
-                st.error(f"⚠️ Dosya okuma hatası: {e}")
-
-            with st.expander("🔍 Dosyadan Okunan Ham Metin Önizlemesi"):
-                st.code(
-                    tam_metin if tam_metin else "Dosya içeriği boş veya okunamadı."
-                )
-
-            if len(dosya_icerigi) > 0:
-                dosya_gecerli = True
-
-                # Excel harici dosyalarda tüm telefon numaralarını / hatları bul
-                if not dosya_adi.endswith((".xlsx", ".xls")):
-                    bulunan_hatlar = re.findall(
-                        r"(?:0?5\d{2}[ \-]?\d{3}[ \-]?\d{2}[ \-]?\d{2})",
-                        tam_metin,
-                    )
-                    if bulunan_hatlar:
-                        otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
-                    else:
-                        # Alternatif olarak satır bazlı sayım yap
-                        satirlar = [
-                            s for s in tam_metin.split("\n") if len(s.strip()) > 5
-                        ]
-                        if len(satirlar) > 1:
-                            otomatik_tespit_hat_sayisi = len(satirlar)
-
-                para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
-                if para_degerleri:
-                    temiz_sayilar = [
-                        float(p.replace(".", "").replace(",", "."))
-                        if "." in p and "," in p
-                        else float(p.replace(",", "."))
-                        for p in para_degerleri
-                        if 5 < float(p.replace(",", ".")) < 100000
-                    ]
-                    if temiz_sayilar:
-                        hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
-
-                st.success(
-                    f"✅ Kurumsal Fatura / Dosya başarıyla okundu! Toplam tespit"
-                    f" edilen hat / kayıt sayısı: **{otomatik_tespit_hat_sayisi}**"
-                )
-            else:
-                dosya_gecerli = False
-                st.error("❌ Yüklenen dosya boş!")
-        else:
-            dosya_gecerli = False
-            st.info("💡 Lütfen kurumsal fatura döküm dosyanızı yükleyin.")
-
-    with col_b2b2:
-        toplam_hat = st.number_input(
-            "Şirket Toplu Hat Sayısı (Dinamik)",
-            min_value=1,
-            max_value=100000,
-            value=otomatik_tespit_hat_sayisi if dosya_gecerli else 1,
-            step=1,
-            format="%d",
-            disabled=not dosya_gecerli,
+        grafik = (
+            df[sec]
+            .astype(str)
+            .value_counts()
+            .reset_index()
         )
 
-        ortalama_hat_maliyeti = st.number_input(
-            "Hat Başı Ortalama Fatura (TL)",
-            min_value=0,
-            max_value=10000,
-            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 1500,
-            step=10,
-            format="%d",
-            disabled=not dosya_gecerli,
+        grafik.columns = [sec,"Adet"]
+
+        fig = px.bar(
+            grafik,
+            x=sec,
+            y="Adet",
+            text="Adet",
+            title=f"{sec} Dağılımı"
         )
 
-    if not dosya_gecerli:
-        st.warning(
-            "⚠️ İşlem yapabilmek için yukarıya geçerli bir kurumsal dosya"
-            " yükleyin."
-        )
-    else:
-        atıl_hat_orani = 0.28
-        atıl_hat_sayisi = int(round(float(toplam_hat) * atıl_hat_orani))
-
-        aylik_kurumsal_israf = float(atıl_hat_sayisi) * (
-            float(ortalama_hat_maliyeti) * 0.35
-        )
-        yillik_kurumsal_tasarruf = aylik_kurumsal_israf * 12.0
-
-        st.markdown("---")
-
-        st.markdown(
-            f"""
-            <div class="b2b-card">
-                <h3 style='color: #A5B4FC; margin-top:0;'>📊 Kurumsal Filo Teşhis ve Tasarruf Raporu</h3>
-                <p style='color: #E0E7FF; font-size:16px;'>
-                    <b>{toplam_hat:,} adet kurumsal hat/kayıt</b> üzerinden yapılan toplu analiz sonucunda:
-                </p>
-                <ul>
-                    <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi:,} personel (%{int(atıl_hat_orani*100)})</li>
-                    <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
-                    <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
-                </ul>
-                <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 Bu raporu IT ve CFO yönetimine sunmak için tek tıkla kurumsal PDF denetim raporu oluşturabilirsiniz.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.plotly_chart(
+            fig,
+            use_container_width=True
         )
 
-        st.write("")
+    if len(sayisal.columns):
 
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            if st.button(
-                "📄 IT / CFO İçin Kurumsal Denetim Raporu İndir (PDF)",
-                use_container_width=True,
-            ):
-                st.success(
-                    "✅ Kurumsal optimizasyon raporu PDF formatında başarıyla"
-                    " oluşturuldu!"
-                )
-        with col_c2:
-            if st.button(
-                "⚙️ Tüm Hatları Otomatik Optimize Et (SaaS Motoru)",
-                use_container_width=True,
-            ):
-                st.balloons()
-                st.success(
-                    "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla"
-                    " hizalandı!"
-                )
+        sec_num = st.selectbox(
+            "Sayısal Sütun",
+            list(sayisal.columns)
+        )
+
+        fig2 = px.histogram(
+            df,
+            x=sec_num,
+            nbins=20,
+            title=f"{sec_num} Dağılımı"
+        )
+
+        st.plotly_chart(
+            fig2,
+            use_container_width=True
+        )
+
+        st.subheader("💰 En Yüksek 10 Kayıt")
+
+        st.dataframe(
+            df.sort_values(
+                sec_num,
+                ascending=False
+            ).head(10),
+            use_container_width=True
+        )
+
+        tasarruf = toplam_tutar * 0.15
+
+        st.success(
+            f"💸 Tahmini yıllık tasarruf: {tasarruf:,.0f} TL"
+        )
+
+else:
+
+    st.info("Lütfen Excel veya CSV yükleyin.")

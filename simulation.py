@@ -252,8 +252,8 @@ k4.metric(
     "Yıllık Tasarruf",
     f"{tasarruf:,.0f} TL"
 )
-    hediye_gb = st.slider(
-     "Aylık Hediye GB",
+hediye_gb = st.slider(
+    "Aylık Hediye GB",
         0,
         20,
         8

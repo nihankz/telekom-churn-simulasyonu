@@ -322,6 +322,40 @@ Eksik sütunlar: {", ".join(sorted(missing))}
         ortalama = df[kolon].mean()
 
     if not sayisal.empty and kolon:
+        # ===========================
+        # Fatura Anomali Analizi
+        # ===========================
+        if "Geçen Ay (TL)" in df.columns:
+            df["Geçen Ay (TL)"] = pd.to_numeric(df["Geçen Ay (TL)"], errors="coerce")
+
+            df["Değişim (%)"] = (
+                (df[kolon] - df["Geçen Ay (TL)"])
+                / df["Geçen Ay (TL)"]
+                * 100
+            ).round(1)
+
+            def anomali(row):
+                if pd.isna(row["Değişim (%)"]):
+                    return "⚪ Veri Yok"
+                elif row["Değişim (%)"] >= 30:
+                    return "🔴 Anomali"
+                elif row["Değişim (%)"] >= 10:
+                    return "🟡 İncelenmeli"
+                else:
+                    return "🟢 Normal"
+
+            df["Fatura Durumu"] = df.apply(anomali, axis=1)
+
+            def ai_yorum(row):
+                if row["Fatura Durumu"] == "🔴 Anomali":
+                    return "Bu hatta son aya göre olağan dışı fatura artışı tespit edildi. Ek kullanım, aşım veya hatalı ücretlendirme kontrol edilmelidir."
+                elif row["Fatura Durumu"] == "🟡 İncelenmeli":
+                    return "Fatura artışı normal seviyenin üzerinde. Kullanım detayları incelenebilir."
+                else:
+                    return "Fatura değişimi normal sınırlar içinde."
+
+            df["AI Fatura Yorumu"] = df.apply(ai_yorum, axis=1)
+
         df["Risk Skoru"] = np.where(
             df[kolon] > ortalama * 1.5,
             "🔴 Yüksek",
@@ -560,6 +594,85 @@ SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde
                 st.warning(f"⚠️ Önümüzdeki 30 gün içinde bitecek {len(yaklasan)} taahhüt bulundu.")
             else:
                 st.success("✅ Önümüzdeki 30 gün içinde bitecek taahhüt bulunmuyor.")
+
+        st.divider()
+        st.subheader("🔔 Akıllı Fiyat Alarmı")
+        if "Rakip Teklifi (TL)" in df.columns:
+
+            df["Rakip Teklifi (TL)"] = pd.to_numeric(
+                df["Rakip Teklifi (TL)"],
+                errors="coerce"
+            )
+
+            alarm = df[df["Rakip Teklifi (TL)"] < df[kolon]].copy()
+
+            if len(alarm):
+
+                alarm["Yıllık Tasarruf"] = (
+                    (df[kolon] - alarm["Rakip Teklifi (TL)"]) * 12
+                )
+
+                st.success(
+                    f"🎯 {len(alarm)} hatta daha avantajlı teklif bulundu."
+                )
+
+                st.metric(
+                    "Toplam Tasarruf",
+                    f"{alarm['Yıllık Tasarruf'].sum():,.0f} TL / yıl"
+                )
+
+                st.dataframe(
+                    alarm[
+                        [
+                            "Hat No",
+                            "Kullanıcı",
+                            "Operatör",
+                            kolon,
+                            "Rakip Teklifi (TL)",
+                            "Yıllık Tasarruf",
+                        ]
+                    ],
+                    use_container_width=True,
+                )
+
+            else:
+                st.info("Şu an daha avantajlı rakip teklifi bulunamadı.")
+        else:
+            st.info("Yüklenen veri setinde 'Rakip Teklifi (TL)' sütunu bulunamadığı için akıllı fiyat alarmı gösterilemiyor.")
+
+        st.divider()
+        st.subheader("🚨 Fatura Anomali Tespiti")
+        if "Fatura Durumu" in df.columns:
+
+            anomaliler = df[df["Fatura Durumu"] == "🔴 Anomali"]
+
+            st.metric("Anomali Bulunan Hat", len(anomaliler))
+
+            if len(anomaliler):
+
+                st.warning(
+                    f"Son aya göre faturası %30'dan fazla artan {len(anomaliler)} hat bulundu."
+                )
+
+                st.dataframe(
+                    anomaliler[
+                        [
+                            "Hat No",
+                            "Kullanıcı",
+                            "Geçen Ay (TL)",
+                            kolon,
+                            "Değişim (%)",
+                            "Fatura Durumu",
+                            "AI Fatura Yorumu",
+                        ]
+                    ],
+                    use_container_width=True,
+                )
+
+            else:
+                st.success("Anormal fatura artışı tespit edilmedi.")
+        else:
+            st.info("Yüklenen veri setinde 'Geçen Ay (TL)' sütunu bulunamadığı için fatura anomali analizi yapılamıyor.")
 
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ

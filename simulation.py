@@ -376,26 +376,53 @@ Eksik sütunlar:{", ".join(sorted(missing))}
         ortalama = df[kolon].mean()
 
     k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.metric(
-            "📱 Aktif Hat",
-            f"{toplam_hat}"
-        )
-    with k2:
-        st.metric(
-            "💰 Aylık Harcama",
-            f"{toplam_tutar:,.0f} TL"
-        )
-    with k3:
-        st.metric(
-            "📊 Ortalama Hat",
-            f"{ortalama:,.0f} TL"
-        )
-    with k4:
-        st.metric(
-            "💸 Yıllık Hacim",
-            f"{toplam_tutar*12:,.0f} TL"
-        )
+    cards = [
+        ("📱 Aktif Hat", f"{toplam_hat}", "Kurumsal filo büyüklüğü"),
+        ("💰 Aylık Harcama", f"{toplam_tutar:,.0f} TL", "Mevcut telekom gideri"),
+        ("📊 Ortalama Hat", f"{ortalama:,.0f} TL", "Hat başı maliyet"),
+        ("💸 Yıllık Hacim", f"{toplam_tutar*12:,.0f} TL", "Yıllık bütçe"),
+    ]
+    for col, (baslik, deger, alt) in zip(
+        [k1, k2, k3, k4],
+        cards
+    ):
+        with col:
+            st.markdown(
+                f"""
+                <div style="
+                    background:#111827;
+                    padding:22px;
+                    border-radius:20px;
+                    border:1px solid #334155;
+                    min-height:130px;
+                ">
+                    <div style="
+                        color:#94a3b8;
+                        font-size:14px;
+                    ">
+                    {baslik}
+                    </div>
+
+                    <div style="
+                        color:white;
+                        font-size:32px;
+                        font-weight:700;
+                        margin-top:12px;
+                    ">
+                    {deger}
+                    </div>
+
+                    <div style="
+                        color:#64748b;
+                        font-size:13px;
+                        margin-top:8px;
+                    ">
+                    {alt}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     if not sayisal.empty and kolon:
         df["Risk Skoru"] = np.where(

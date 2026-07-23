@@ -378,26 +378,40 @@ else:
       metin_kontrol = tam_metin.lower()
       temizlenmis_metin = re.sub(r"[\s\|\-_]+", " ", metin_kontrol)
 
-      # --- REVİZE EDİLEN ESNEK ALTERNATİFLİ DOĞRULAMA MANTIĞI ---
+      # --- TÜRKÇE KARAKTERLERİ TAMAMEN NORMALE ÇEVİRME ---
+      temizlenmis_metin = (
+          temizlenmis_metin.replace("ı", "i")
+          .replace("İ", "i")
+          .replace("ş", "s")
+          .replace("Ş", "s")
+          .replace("ğ", "g")
+          .replace("Ğ", "g")
+          .replace("ü", "u")
+          .replace("Ü", "u")
+          .replace("ö", "o")
+          .replace("Ö", "o")
+          .replace("ç", "c")
+          .replace("Ç", "c")
+      )
+
+      # --- GÜNCELLENMİŞ TABLO ANAHTARLARI ---
       zorunlu_tablo_anahtarlari = [
-          ["fatura no", "fatura"],
-          ["hat no", "hat"],
-          ["kullanıcı", "kullanici"],
-          ["departman"],
-          ["operatör", "operator"],
-          ["toplam"],
+          "fatura no",
+          "hat no",
+          "kullanici",
+          "departman",
+          "operator",
+          "toplam",
       ]
 
-      bulunan_anahtar_sayisi = 0
-      for alternatifler in zorunlu_tablo_anahtarlari:
-        if any(a in temizlenmis_metin for a in alternatifler):
-          bulunan_anahtar_sayisi += 1
+      bulunan_anahtar_sayisi = sum(
+          1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in temizlenmis_metin
+      )
 
       gsm_eslesmeleri = re.findall(r"0\s*5\s*\d[\s*\d]{9}", metin_kontrol)
       if not gsm_eslesmeleri:
         gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
 
-      # En az 3 sütun eşleşmesi ve en az 1 telefon numarası güvenli doğrulamayı sağlar
       if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(

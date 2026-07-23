@@ -323,7 +323,6 @@ else:
   # --- 🏢 B2B KURUMSAL FİLO YÖNETİMİ MODÜLÜ ---
   st.subheader("🏢 Toplu Kurumsal Hat Analizi & Maliyet Optimizasyonu")
 
-  # Yükleme öncesi format zorunluluğu bildirimi
   st.markdown(
       """
       <div class="upload-info-box">
@@ -377,26 +376,28 @@ else:
           tam_metin = ""
 
       metin_kontrol = tam_metin.lower()
-      # Boşlukları ve yeni satırları normalize et (PDF satır kaymalarını önlemek için)
-      temizlenmis_metin = re.sub(r"\s+", " ", metin_kontrol)
+      temizlenmis_metin = re.sub(r"[\s\|\-_]+", " ", metin_kontrol)
 
-      # KATI DOĞRULAMA (Esnetilmiş Eşleşme): Zorunlu Sütun ve Yapı Kontrolü
+      # --- REVİZE EDİLEN ESNEK ALTERNATİFLİ DOĞRULAMA MANTIĞI ---
       zorunlu_tablo_anahtarlari = [
-          "fatura no",
-          "hat no",
-          "kullanıcı",
-          "departman",
-          "operatör",
-          "toplam",
+          ["fatura no", "fatura"],
+          ["hat no", "hat"],
+          ["kullanıcı", "kullanici"],
+          ["departman"],
+          ["operatör", "operator"],
+          ["toplam"],
       ]
-      bulunan_anahtar_sayisi = sum(
-          1
-          for anahtar in zorunlu_tablo_anahtarlari
-          if anahtar in temizlenmis_metin
-      )
-      gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
 
-      # Doğru format kontrolü (En az 3 anahtar kelime ve en az 1 tane 05'li hat numarası)
+      bulunan_anahtar_sayisi = 0
+      for alternatifler in zorunlu_tablo_anahtarlari:
+        if any(a in temizlenmis_metin for a in alternatifler):
+          bulunan_anahtar_sayisi += 1
+
+      gsm_eslesmeleri = re.findall(r"0\s*5\s*\d[\s*\d]{9}", metin_kontrol)
+      if not gsm_eslesmeleri:
+        gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
+
+      # En az 3 sütun eşleşmesi ve en az 1 telefon numarası güvenli doğrulamayı sağlar
       if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(
@@ -484,7 +485,7 @@ else:
                 <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
                 <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
             </ul>
-            <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 This report can be generated instantly for IT and CFO management.</p>
+            <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 Bu raporu IT ve CFO yönetimine sunmak için tek tıkla kurumsal PDF denetim raporu oluşturabilirsiniz.</p>
         </div>
         """,
         unsafe_allow_html=True,

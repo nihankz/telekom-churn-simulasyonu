@@ -286,8 +286,7 @@ if net_npv_kazanc > 1000:
 
 st.markdown("---")
 st.subheader("📊 Analitik Karar & Karşılaştırma Raporu")
-
-    if hediye_gb > 0:
+ if hediye_gb > 0:
         st.markdown(
             f"""
             <div class="gift-card">

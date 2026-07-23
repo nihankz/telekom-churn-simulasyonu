@@ -368,6 +368,7 @@ fig_line.update_layout(
         xaxis_title="Ay",
         yaxis_title="Toplam Maliyet (TL)",
     )
+if:
 st.plotly_chart(fig_line, use_container_width=True)
 else:
 st.subheader("🏢 Kurumsal Filo Analizi")

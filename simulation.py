@@ -1,46 +1,18 @@
-st.markdown(
-    """
-<style>
+from io import BytesIO
+import io
+import os
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph, SimpleDocTemplate
+import streamlit as st
 
-.block-container{
-    padding-top:2rem;
-}
+st.set_page_config(page_title="SubOpt", page_icon="📱", layout="wide")
 
-.kpi{
-    background:#1f2937;
-    padding:18px;
-    border-radius:12px;
-    border:1px solid #374151;
-    text-align:center;
-}
-
-.green{
-    background:#052e16;
-    border:1px solid #16a34a;
-    padding:16px;
-    border-radius:10px;
-}
-
-.red{
-    background:#450a0a;
-    border:1px solid #dc2626;
-    padding:16px;
-    border-radius:10px;
-}
-
-.blue{
-    background:#172554;
-    border:1px solid #2563eb;
-    padding:16px;
-    border-radius:10px;
-}
-
-</style>
-""",
-    unsafe_allow_html=True,
-)
-Bunun tamamını sil.
-Yerine bunu koy:
 st.markdown(
     """
 <style>
@@ -125,3 +97,6 @@ section[data-testid="stSidebar"]{
 """,
     unsafe_allow_html=True,
 )
+
+st.title("📱 SubOpt")
+st.caption("Bireysel ve Kurumsal Telekom Optimizasyon Platformu")

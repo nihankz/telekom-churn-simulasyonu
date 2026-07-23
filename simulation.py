@@ -58,7 +58,16 @@ st.markdown(
 st.title("📱 SubOpt")
 st.caption("Bireysel ve Kurumsal Telekom Optimizasyon Platformu")
 
-sayfa = st.sidebar.radio("Modül", ["👤 Bireysel", "🏢 Kurumsal"])
+sayfa = st.sidebar.radio(
+    "Modül",
+    [
+        "📊 Dashboard",
+        "💸 Tasarruf Fırsatları",
+        "📱 Hat Yönetimi",
+        "📄 Raporlar",
+        "👤 Bireysel"
+    ]
+)
 
 # ==========================================================
 # BİREYSEL
@@ -185,17 +194,14 @@ if sayfa == "👤 Bireysel":
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================================
-# KURUMSAL
+# KURUMSAL MODÜLLER
 # ==========================================================
 
 else:
-
     st.header("🏢 Kurumsal Filo Analizi")
-
     dosya = st.file_uploader("Excel veya CSV yükleyin", type=["xlsx", "xls", "csv"])
 
     if dosya is not None:
-
         if dosya.name.endswith(("xlsx", "xls")):
             df = pd.read_excel(dosya)
         else:
@@ -236,9 +242,6 @@ Eksik sütunlar:{", ".join(sorted(missing))}
                 st.stop()
 
         st.success(f"✅ {len(df)} kayıt başarıyla okundu.")
-
-        st.divider()
-        st.dataframe(df, use_container_width=True)
         st.divider()
 
         toplam_hat = len(df)
@@ -295,27 +298,10 @@ Eksik sütunlar:{", ".join(sorted(missing))}
             riskli = df[df[kolon] > limit]
             potansiyel = riskli[kolon].sum() * 0.20
 
-            # Tahmini Fazla Ödeme Hesabı
             df["Beklenen Maliyet"] = ortalama
             df["Aylık Fazla Ödeme"] = (df[kolon] - df["Beklenen Maliyet"]).clip(lower=0)
             df["Yıllık Fazla Ödeme"] = df["Aylık Fazla Ödeme"] * 12
             toplam_fazla_odeme = df["Yıllık Fazla Ödeme"].sum()
-
-            st.error(
-                f"""
-# 🚨 Tasarruf Alarmı
-
-SubOpt analizine göre şirketinizde
-
-**{len(riskli)} adet yüksek maliyetli hat** bulundu.
-
-Bu hatlar optimize edilirse
-
-## 💰 Yaklaşık {potansiyel*12:,.0f} TL
-
-yıllık tasarruf sağlanabilir.
-"""
-            )
 
         yuksek_risk_orani = (
             len(df[df[kolon] > ortalama * 1.5]) / toplam_hat
@@ -333,139 +319,126 @@ yıllık tasarruf sağlanabilir.
         else:
             skor_renk = "🔴 Kritik"
 
-        st.markdown(
-            f"""
-            <div class="kpi">
-                <h3>📊 Telekom Finansal Sağlık Skoru</h3>
-                <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
-                <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
-                <hr style="border-color: #374151;">
-                <p style="font-size: 14px; color: #9ca3af; margin-bottom: 0;">
-                    Paket Verimliliği: %{max(0, 100 - int(yuksek_risk_orani*100))} | 
-                    Maliyet Verimliliği: %{min(100, int(ortalama*100/toplam_tutar*toplam_hat)) if toplam_tutar > 0 else 0} | 
-                    Taahhüt Riski: Düşük
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        en_pahali_departman = (
+            df.groupby("Departman")[kolon].sum().sort_values(ascending=False)
         )
-        st.divider()
+        en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0]
 
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Toplam Hat", f"{toplam_hat}")
-        k2.metric("Toplam Maliyet", f"{toplam_tutar:,.0f} TL")
-        k3.metric("Ortalama", f"{ortalama:,.0f} TL")
-        k4.metric("Tahmini Fazla Ödeme", f"{toplam_fazla_odeme:,.0f} TL/yıl")
-        st.divider()
-
-        col_left, col_right = st.columns(2)
-
-        with col_left:
-            if "Operatör" in df.columns:
-                operator_df = df["Operatör"].value_counts().reset_index()
-                operator_df.columns = ["Operatör", "Hat"]
-
-                fig_operator = px.pie(
-                    operator_df,
-                    values="Hat",
-                    names="Operatör",
-                    hole=0.55,
-                    title="📡 Operatör Dağılımı",
-                )
-                st.plotly_chart(fig_operator, use_container_width=True)
-
-        with col_right:
-            if "Departman" in df.columns and kolon:
-                departman = df.groupby("Departman")[kolon].sum().reset_index()
-
-                fig_departman = px.bar(
-                    departman,
-                    x="Departman",
-                    y=kolon,
-                    text_auto=".2f",
-                    title="🏢 Departman Bazlı Maliyet",
-                )
-                st.plotly_chart(fig_departman, use_container_width=True)
-
-        st.divider()
-        kategorik = list(df.select_dtypes(include="object").columns)
-
-        if kategorik:
-            secim = st.selectbox("Dağılım Grafiği", kategorik)
-            grafik = df[secim].astype(str).value_counts().reset_index()
-            grafik.columns = [secim, "Adet"]
-
-            fig = px.bar(
-                grafik, x=secim, y="Adet", text="Adet", title=f"{secim} Dağılımı"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        if not sayisal.empty and kolon:
-            fig2 = px.histogram(df, x=kolon, nbins=20, title=f"{kolon} Dağılımı")
-            st.plotly_chart(fig2, use_container_width=True)
-
+        # --------------------------------------------------
+        # 📊 DASHBOARD
+        # --------------------------------------------------
+        if sayfa == "📊 Dashboard":
+            st.header("📊 SubOpt Telekom Dashboard")
             st.divider()
-            st.subheader("🤖 AI Executive Summary")
 
-            en_pahali_departman = (
-                df.groupby("Departman")[kolon].sum().sort_values(ascending=False)
-            )
-            en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0]
-
-            st.info(
+            st.markdown(
                 f"""
-### 📊 Yönetici Özeti
+                <div class="kpi">
+                    <h3>📊 Telekom Finansal Sağlık Skoru</h3>
+                    <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
+                    <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
+                    <hr style="border-color: #374151;">
+                    <p style="font-size: 14px; color: #9ca3af; margin-bottom: 0;">
+                        Paket Verimliliği: %{max(0, 100 - int(yuksek_risk_orani*100))} | 
+                        Maliyet Verimliliği: %{min(100, int(ortalama*100/toplam_tutar*toplam_hat)) if toplam_tutar > 0 else 0} | 
+                        Taahhüt Riski: Düşük
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.divider()
 
-📱 Aktif Hat Sayısı: **{toplam_hat}**
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Toplam Hat", f"{toplam_hat}")
+            k2.metric("Toplam Maliyet", f"{toplam_tutar:,.0f} TL")
+            k3.metric("Ortalama", f"{ortalama:,.0f} TL")
+            k4.metric("Tahmini Fazla Ödeme", f"{toplam_fazla_odeme:,.0f} TL/yıl")
+            st.divider()
 
-💰 Toplam Aylık Telekom Gideri:
-**{toplam_tutar:,.2f} TL**
+            col_left, col_right = st.columns(2)
 
-📈 Hat Başına Ortalama:
-**{ortalama:,.2f} TL**
+            with col_left:
+                if "Operatör" in df.columns:
+                    operator_df = df["Operatör"].value_counts().reset_index()
+                    operator_df.columns = ["Operatör", "Hat"]
 
-🏢 En yüksek maliyetli departman:
-**{en_pahali_departman.index[0]}**
-(**{en_pahali_departman.iloc[0]:,.2f} TL**)
+                    fig_operator = px.pie(
+                        operator_df,
+                        values="Hat",
+                        names="Operatör",
+                        hole=0.55,
+                        title="📡 Operatör Dağılımı",
+                    )
+                    st.plotly_chart(fig_operator, use_container_width=True)
 
-🔥 En pahalı hat:
-**{en_pahali_hat['Hat No']}**
-(**{en_pahali_hat[kolon]:,.2f} TL**)
+            with col_right:
+                if "Departman" in df.columns and kolon:
+                    departman = df.groupby("Departman")[kolon].sum().reset_index()
 
-💡 SubOpt önerisi:
-En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
+                    fig_departman = px.bar(
+                        departman,
+                        x="Departman",
+                        y=kolon,
+                        text_auto=".2f",
+                        title="🏢 Departman Bazlı Maliyet",
+                    )
+                    st.plotly_chart(fig_departman, use_container_width=True)
+
+        # --------------------------------------------------
+        # 💸 TASARRUF FIRSATLARI
+        # --------------------------------------------------
+        elif sayfa == "💸 Tasarruf Fırsatları":
+            st.header("💸 Tasarruf Fırsatları ve Risk Analizi")
+            st.divider()
+
+            st.error(
+                f"""
+# 🚨 Tasarruf Alarmı
+
+SubOpt analizine göre şirketinizde
+
+**{len(riskli)} adet yüksek maliyetli hat** bulundu.
+
+Bu hatlar optimize edilirse
+
+## 💰 Yaklaşık {potansiyel*12:,.0f} TL
+
+yıllık tasarruf sağlanabilir.
 """
             )
 
+            st.subheader("💸 SubOpt Tasarruf Potansiyeli")
+            st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL")
+            st.progress(min(potansiyel / 10000, 1.0))
+
             st.subheader("🚨 Ortalama Üzeri Maliyetli Hatlar")
-
             if len(riskli):
-                st.warning(
-                    f"{len(riskli)} adet hat şirket ortalamasının %50 üzerinde maliyet oluşturuyor."
-                )
-
+                st.warning(f"{len(riskli)} adet hat şirket ortalamasının %50 üzerinde maliyet oluşturuyor.")
                 st.dataframe(
-                    riskli[
-                        [
-                            "Hat No",
-                            "Kullanıcı",
-                            "Departman",
-                            "Operatör",
-                            kolon,
-                        ]
-                    ],
+                    riskli[[
+                        "Hat No",
+                        "Kullanıcı",
+                        "Departman",
+                        "Operatör",
+                        kolon,
+                    ]],
                     use_container_width=True,
                 )
-
-                st.subheader("💸 SubOpt Tasarruf Potansiyeli")
-                st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL")
-                st.progress(min(potansiyel / 10000, 1.0))
-
             else:
                 st.success("Riskli maliyet oluşturan hat bulunamadı.")
 
-            st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
+        # --------------------------------------------------
+        # 📱 HAT YÖNETİMİ
+        # --------------------------------------------------
+        elif sayfa == "📱 Hat Yönetimi":
+            st.header("📱 Kurumsal Hat Yönetimi")
+            st.divider()
 
+            st.dataframe(df, use_container_width=True)
+            st.divider()
+
+            st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
             st.dataframe(
                 df.sort_values(kolon, ascending=False)[
                     [
@@ -481,12 +454,10 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
                 use_container_width=True,
             )
 
-            # Gelişmiş AI Copilot Modülü
+            # AI Copilot
             st.divider()
             st.subheader("🤖 SubOpt Gelişmiş AI Copilot")
-            st.caption(
-                "Veri setiniz hakkında doğal dille detaylı analiz alın (Örn: 'En yüksek maliyetli departman hangisi?', 'Riskli hat oranı nedir?', 'Operatör dağılımı nasıl?')"
-            )
+            st.caption("Veri setiniz hakkında doğal dille detaylı analiz alın.")
 
             if "messages" not in st.session_state:
                 st.session_state.messages = []
@@ -529,10 +500,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
                 elif "operatör" in q:
                     return f"📡 Operatör dağılımı: {data['operatorler']}"
                 else:
-                    return (
-                        "Bu konuda elimdeki analiz verileriyle yardımcı olabilirim. "
-                        "Örneğin: kaç hat var, en pahalı departman, riskli hatlar, tasarruf potansiyeli."
-                    )
+                    return "Bu konuda elimdeki analiz verileriyle yardımcı olabilirim."
 
             user_prompt = st.chat_input("Veri setine soru sorun...")
             if user_prompt:
@@ -545,9 +513,39 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
                 with st.chat_message("assistant"):
                     st.markdown(response_text, unsafe_allow_html=True)
 
-            # PDF Raporu Dışa Aktar
+        # --------------------------------------------------
+        # 📄 RAPORLAR
+        # --------------------------------------------------
+        elif sayfa == "📄 Raporlar":
+            st.header("📄 Yönetici Raporları ve Dışa Aktarım")
             st.divider()
-            st.subheader("📄 Yönetici Raporu Dışa Aktar")
+
+            st.info(
+                f"""
+### 📊 Yönetici Özeti
+
+📱 Aktif Hat Sayısı: **{toplam_hat}**
+
+💰 Toplam Aylık Telekom Gideri:
+**{toplam_tutar:,.2f} TL**
+
+📈 Hat Başına Ortalama:
+**{ortalama:,.2f} TL**
+
+🏢 En yüksek maliyetli departman:
+**{en_pahali_departman.index[0]}**
+(**{en_pahali_departman.iloc[0]:,.2f} TL**)
+
+🔥 En pahalı hat:
+**{en_pahali_hat['Hat No']}**
+(**{en_pahali_hat[kolon]:,.2f} TL**)
+
+💡 SubOpt önerisi:
+En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
+"""
+            )
+
+            st.subheader("📄 PDF Yönetici Raporu İndir")
 
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer)

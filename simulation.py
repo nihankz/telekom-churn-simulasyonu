@@ -227,7 +227,7 @@ with sol:
         st.session_state.gb_val
     )
 
-with sag:
+ with sag:
 st.subheader("📈 Karar Özeti")
 
 k1,k2,k3,k4 = st.columns(4)

@@ -1,10 +1,13 @@
 from io import BytesIO
 import io
+import os
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 import streamlit as st
 
@@ -353,7 +356,7 @@ yıllık tasarruf sağlanabilir.
 
     st.markdown(
         f"""
-        <div class="tr-kpi">
+        <div class="kpi">
             <h3>📊 Telekom Finansal Sağlık Skoru</h3>
             <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
             <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
@@ -594,7 +597,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           op_sayilari = df["Operatör"].value_counts().to_dict()
           op_str = ", ".join([f"**{k}**: {v} hat" for k, v in op_sayilari.items()])
           cevap = f"📡 Operatör dağılımı şu şekildedir: {op_str}"
-        elif any(x in p for x in ["öneri", "tavsiye", "ne yapmalıyız", "aksiyon"]):
+        elif y := [x for x in ["öneri", "tavsiye"] if x in p]:
           cevap = (
               "💡 **SubOpt Önerisi:** Riskli hatların paketlerini gözden"
               " geçirin, yüksek maliyetli departmanlara kota uygulayın ve"
@@ -602,7 +605,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           )
         elif any(x in p for x in ["merhaba", "selam", "hey", "günaydın"]):
           cevap = (
-              "👋 Merhaba! Ben SubOpt AI Copilot. Kurumsal filo analizinize"
+              "👋 Merhaba! Ben SubOpt AI Copilot. Kurumsal filtre analizinize"
               " yardımcı olmak için buradayım. Ne öğrenmek istersiniz?"
           )
         elif any(x in p for x in ["teşekkür", "sağol", "harika", "süper"]):
@@ -634,101 +637,94 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
             {"role": "assistant", "content": cevap}
         )
 
-      # PDF Raporu İndirme Butonu (Türkçe Karakter Düzeltmeli)
+      # PDF Raporu Dışa Aktar (TrueType Font ve Türkçe Desteği ile)
       st.divider()
       st.subheader("📄 Yönetici Raporu Dışa Aktar")
-
-
-      def tr_temizle(metin):
-        cevirmeler = {
-            "İ": "I",
-            "ı": "i",
-            "Ş": "S",
-            "ş": "s",
-            "Ğ": "G",
-            "ğ": "g",
-            "Ü": "U",
-            "ü": "u",
-            "Ö": "O",
-            "ö": "o",
-            "Ç": "C",
-            "ç": "c",
-        }
-        for k, v in cevirmeler.items():
-          metin = metin.replace(k, v)
-        return metin
-
 
       buffer = BytesIO()
       doc = SimpleDocTemplate(buffer)
       styles = getSampleStyleSheet()
+
+      # Sistem fontunu güvenli şekilde kaydetmeye çalışalım
+      try:
+        # Windows / Linux ortak font yolları kontrolü
+        font_yolu = None
+        if os.name == "nt":  # Windows
+          if os.path.exists("C:/Windows/Fonts/arial.ttf"):
+            font_yolu = "C:/Windows/Fonts/arial.ttf"
+        else:  # Mac / Linux
+          paths = [
+              "/Library/Fonts/Arial.ttf",
+              "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+          ]
+          for p_th in paths:
+            if os.path.exists(p_th):
+              font_yolu = p_th
+              break
+
+        if font_yolu:
+          pdfmetrics.registerFont(TTFont("SeciciFont", font_yolu))
+          styles["Heading1"].fontName = "SeciciFont"
+          styles["Heading2"].fontName = "SeciciFont"
+          styles["BodyText"].fontName = "SeciciFont"
+      except Exception:
+        pass
+
       story = []
-
       story.append(
           Paragraph(
-              tr_temizle("<b>SUBOPT TELEKOM OPTIMIZASYON RAPORU</b>"),
-              styles["Heading1"],
+              "<b>SUBOPT TELEKOM OPTİMİZASYON RAPORU</b>", styles["Heading1"]
           )
       )
       story.append(
-          Paragraph(
-              tr_temizle(f"Aktif Hat Sayisi: {toplam_hat}"), styles["BodyText"]
-          )
+          Paragraph(f"Aktif Hat Sayısı: {toplam_hat}", styles["BodyText"])
       )
       story.append(
           Paragraph(
-              tr_temizle(f"Toplam Aylik Maliyet: {toplam_tutar:,.2f} TL"),
+              f"Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL",
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              tr_temizle(f"Hat Basina Ortalama: {ortalama:,.2f} TL"),
+              f"Hat Başına Ortalama: {ortalama:,.2f} TL", styles["BodyText"]
+          )
+      )
+      story.append(
+          Paragraph(
+              f"Finansal Sağlık Skoru: {saglik_skoru}/100", styles["BodyText"]
+          )
+      )
+      story.append(
+          Paragraph(f"Riskli Hat Sayısı: {len(riskli)}", styles["BodyText"])
+      )
+      story.append(
+          Paragraph(
+              f"Tahmini Yıllık Tasarruf: {potansiyel*12:,.0f} TL",
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph("<br/><b>Yönetici Önerileri</b>", styles["Heading2"])
+      )
+      story.append(
+          Paragraph(
+              "• Riskli hatlar için yeni operatör teklifleri alın.",
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              tr_temizle(f"Finansal Saglik Skoru: {saglik_skoru}/100"),
+              "• En pahalı departman detaylı incelenmelidir.",
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              tr_temizle(f"Riskli Hat Sayisi: {len(riskli)}"),
+              "• Ortalama üzerindeki hatlar optimize edilmelidir.",
               styles["BodyText"],
           )
       )
-      story.append(
-          Paragraph(
-              tr_temizle(f"Tahmini Yillik Tasarruf: {potansiyel*12:,.0f} TL"),
-              styles["BodyText"],
-          )
-      )
-      story.append(
-          Paragraph(
-              tr_temizle("<br/><b>Yonetici Onerileri</b>"), styles["Heading2"]
-          )
-      )
-      story.append(
-          Paragraph(
-              tr_temizle("• Riskli hatlar icin yeni operator teklifleri alin."),
-              styles["BodyText"],
-          )
-      )
-      story.append(
-          Paragraph(
-              tr_temizle("• En pahali departman detayli incelenmelidir."),
-              styles["BodyText"],
-          )
-      )
-      story.append(
-          Paragraph(
-              tr_temizle("• Ortalama uzerindeki hatlar optimize edilmelidir."),
-              styles["BodyText"],
-          )
-      )
-
       doc.build(story)
       pdf = buffer.getvalue()
 

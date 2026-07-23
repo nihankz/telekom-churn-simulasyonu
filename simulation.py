@@ -268,14 +268,10 @@ else:
                 )
 
             # Sayıya çevir
-            df[kolon] = (
-                df[kolon]
-                .astype(str)
-                .str.replace("TL", "", regex=False)
-                .str.replace(".", "", regex=False)
-                .str.replace(",", ".", regex=False)
-            )
-
+            df[kolon] = pd.to_numeric(
+    df[kolon],
+    errors="coerce"
+)
             df[kolon] = pd.to_numeric(
                 df[kolon],
                 errors="coerce"

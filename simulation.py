@@ -150,6 +150,25 @@ else:
 
     df = df.dropna(how="all")
 
+    required_columns = {
+        "Hat No",
+        "Kullanıcı",
+        "Departman",
+        "Operatör",
+    }
+    missing = required_columns - set(df.columns)
+    if missing:
+      st.error(
+          f"""
+❌ Desteklenmeyen Dosya
+
+Bu uygulama yalnızca kurumsal telekom hat dökümlerini analiz eder.
+
+Eksik sütunlar:{", ".join(sorted(missing))}
+"""
+      )
+      st.stop()
+
     operators = ["Turkcell", "Vodafone", "Türk Telekom"]
 
     if "Operatör" in df.columns:

@@ -255,14 +255,14 @@ else:
         if not sayisal.empty:
 
             # Toplam (TL) sütununu otomatik bul
-    if "Toplam (TL)" in df.columns:
-    kolon = "Toplam (TL)"
-    elif "Toplam" in df.columns:
-    kolon = "Toplam"
-    else:
-    kolon = st.selectbox(
-        "Maliyet Sütunu",
-        sayisal.columns
+                if "Toplam (TL)" in df.columns:
+                kolon = "Toplam (TL)"
+                  elif "Toplam" in df.columns:
+                  kolon = "Toplam"
+                    else:
+                    kolon = st.selectbox(
+                    "Maliyet Sütunu",
+                    sayisal.columns
     )
 
 # Sayıya çevir

@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Yalnızca kurumsal fatura formatındaki dökümler (Fatura No, Hat No, Tutar vb.) kabul edilir. CV veya alakasız evraklar otomatik olarak reddedilir.
+            <b>📁 BİLGİ:</b> Yalnızca kurumsal fatura dökümleri kabul edilir (CV ve alakasız belgeler otomatik reddedilir). Hat sayısı yüklenen dosyadaki satırlardan otomatik tespit edilir.
         </div>
         """,
         unsafe_allow_html=True,
@@ -336,7 +336,7 @@ else:
 
     dosya_gecerli = False
     otomatik_tespit_hat_sayisi = 10
-    hesaplanan_ortalama_tutar = 0.0
+    hesaplanan_ortalama_tutar = 1500.0
 
     with col_b2b1:
         kurumsal_dosya = st.file_uploader(
@@ -348,57 +348,63 @@ else:
         tam_metin = ""
         if kurumsal_dosya is not None:
             dosya_adi = kurumsal_dosya.name.lower()
+            dosya_icerigi = kurumsal_dosya.getvalue()
 
             try:
                 if dosya_adi.endswith(".pdf"):
-                    import fitz
+                    import pypdf
 
-                    pdf = fitz.open(
-                        stream=kurumsal_dosya.read(), filetype="pdf"
-                    )
-                    for page in pdf:
-                        tam_metin += page.get_text("text") + "\n"
+                    reader = pypdf.PdfReader(io.BytesIO(dosya_icerigi))
+                    for page in reader.pages:
+                        text = page.extract_text()
+                        if text:
+                            tam_metin += text + "\n"
                 elif dosya_adi.endswith((".xlsx", ".xls")):
-                    df_excel = pd.read_excel(kurumsal_dosya)
+                    df_excel = pd.read_excel(io.BytesIO(dosya_icerigi))
                     tam_metin = df_excel.to_string()
                 else:
-                    tam_metin = kurumsal_dosya.getvalue().decode(
-                        "utf-8", errors="ignore"
-                    )
-            except Exception:
-                try:
-                    tam_metin = kurumsal_dosya.getvalue().decode(
-                        "latin-1", errors="ignore"
-                    )
-                except:
-                    tam_metin = ""
+                    try:
+                        tam_metin = dosya_icerigi.decode("utf-8")
+                    except:
+                        tam_metin = dosya_icerigi.decode(
+                            "latin-1", errors="ignore"
+                        )
+            except Exception as e:
+                st.error(f"⚠️ Dosya okuma hatası: {e}")
 
-            with st.expander("🔍 Dosyadan Okunan Ham Metin"):
-                st.code(tam_metin)
+            with st.expander("🔍 Dosyadan Okunan Ham Metin Önizlemesi"):
+                st.code(tam_metin if tam_metin else "Metin okunamadı!")
 
-            # --- 🛡️ KESİN DOĞRULAMA FİLTRESİ ---
             metin_kucuk = tam_metin.lower()
 
-            # 1. Kesinlikle yasaklı CV / Özgeçmiş kelimeleri
-            yasakli_cv_kelimeleri = ["cv", "özgeçmiş", "resume", "staj", "eğitim durumu", "mezuniyet"]
-            is_cv = any(w in dosya_adi for w in ["cv", "ozgecmis", "resume"]) or any(w in metin_kucuk for w in ["özgeçmiş", "mezuniyet", "eğitim durumu"])
+            # Doğrulama: CV veya alakasız dosyaları engelle
+            yasakli_cv = ["özgeçmiş", "mezuniyet", "stajyeri", "eğitim durumu"]
+            is_cv = any(w in dosya_adi for w in ["cv", "ozgecmis", "resume"]) or any(
+                w in metin_kucuk for w in yasakli_cv
+            )
 
-            # 2. Fatura / Döküm olduğunu kanıtlayan zorunlu başlıklar (Örnek tablonuzdaki anahtar kelimeler)
-            fatura_imzalari = ["fatura no", "hat no", "toplam (tl)", "departman", "operatör"]
-            eslesen_imza_sayisi = sum(1 for imza in fatura_imzalari if imza in metin_kucuk)
+            # Örnek faturanızdaki sütun başlıkları kontrolü
+            fatura_imzalari = [
+                "fatura no",
+                "hat no",
+                "toplam",
+                "departman",
+                "operatör",
+            ]
+            eslesen_imza = sum(1 for imza in fatura_imzalari if imza in metin_kucuk)
 
-            if is_cv or eslesen_imza_sayisi < 2:
+            if is_cv or (eslesen_imza < 2 and len(tam_metin.strip()) < 30):
                 dosya_gecerli = False
                 st.error(
-                    "❌ **GEÇERSİZ DOSYA:** Yüklenen belge kurumsal fatura formatına (Fatura No, Hat No, Tutar vb.) uymuyor! Lütfen doğru formatta bir döküm yükleyin."
+                    "❌ **GEÇERSİZ DOSYA:** Yüklenen belge kurumsal fatura formatına"
+                    " uymuyor! Lütfen doğru formatta hat dökümü yükleyin."
                 )
             else:
-                # Hat sayısını faturadaki satırlardan / telefon numaralarından (05 ile başlayan 11 haneli hatlar) dinamik bul
+                # Dinamik hat sayısı tespiti (05 ile başlayan 11 haneli telefon numaraları)
                 bulunan_hatlar = re.findall(r"05\d{9}", tam_metin)
                 if bulunan_hatlar:
                     otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
                 else:
-                    # Alternatif olarak Fatura No sayısını say
                     fatura_sayilari = re.findall(r"F\d{8,10}", tam_metin)
                     if fatura_sayilari:
                         otomatik_tespit_hat_sayisi = len(set(fatura_sayilari))
@@ -413,23 +419,21 @@ else:
                         for p in para_degerleri
                         if 10 < float(p.replace(",", ".")) < 50000
                     ]
-                    hesaplanan_ortalama_tutar = (
-                        float(np.mean(temiz_sayilar)) if temiz_sayilar else 1500.0
-                    )
-                else:
-                    hesaplanan_ortalama_tutar = 1500.0
+                    if temiz_sayilar:
+                        hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
 
                 dosya_gecerli = True
                 st.success(
-                    f"✅ Kurumsal Fatura / Hat Dökümü başarıyla doğrulandı! Tespit edilen hat sayısı: **{otomatik_tespit_hat_sayisi}**"
+                    f"✅ Kurumsal Fatura / Hat Dökümü başarıyla okundu! Tespit"
+                    f" edilen hat sayısı: **{otomatik_tespit_hat_sayisi}**"
                 )
         else:
             dosya_gecerli = False
-            st.info("💡 Lütfen örnek formatınıza uygun kurumsal fatura dökümünü yükleyin.")
+            st.info("💡 Lütfen kurumsal fatura döküm dosyanızı yükleyin.")
 
     with col_b2b2:
         toplam_hat = st.number_input(
-            "Şirket Toplu Hat Sayısı (Otomatik Güncellenir)",
+            "Şirket Toplu Hat Sayısı (Dinamik)",
             min_value=1,
             max_value=100000,
             value=otomatik_tespit_hat_sayisi if dosya_gecerli else 10,
@@ -449,7 +453,10 @@ else:
         )
 
     if not dosya_gecerli:
-        st.warning("⚠️ Analiz yapabilmek için yukarıya geçerli bir kurumsal fatura dökümü yüklemeniz gerekmektedir.")
+        st.warning(
+            "⚠️ İşlem yapabilmek için yukarıya geçerli bir kurumsal fatura dökümü"
+            " yükleyin."
+        )
     else:
         atıl_hat_orani = 0.28
         atıl_hat_sayisi = int(round(float(toplam_hat) * atıl_hat_orani))

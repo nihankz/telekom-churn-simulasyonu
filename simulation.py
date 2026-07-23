@@ -294,19 +294,12 @@ Eksik sütunlar:{", ".join(sorted(missing))}
             limit = ortalama * 1.5
             riskli = df[df[kolon] > limit]
             potansiyel = riskli[kolon].sum() * 0.20
+
             # Tahmini Fazla Ödeme Hesabı
-
-df["Beklenen Maliyet"] = ortalama
-
-df["Aylık Fazla Ödeme"] = (
-    df[kolon] - df["Beklenen Maliyet"]
-).clip(lower=0)
-
-df["Yıllık Fazla Ödeme"] = (
-    df["Aylık Fazla Ödeme"] * 12
-)
-
-toplam_fazla_odeme = df["Yıllık Fazla Ödeme"].sum()
+            df["Beklenen Maliyet"] = ortalama
+            df["Aylık Fazla Ödeme"] = (df[kolon] - df["Beklenen Maliyet"]).clip(lower=0)
+            df["Yıllık Fazla Ödeme"] = df["Aylık Fazla Ödeme"] * 12
+            toplam_fazla_odeme = df["Yıllık Fazla Ödeme"].sum()
 
             st.error(
                 f"""
@@ -362,10 +355,7 @@ yıllık tasarruf sağlanabilir.
         k1.metric("Toplam Hat", f"{toplam_hat}")
         k2.metric("Toplam Maliyet", f"{toplam_tutar:,.0f} TL")
         k3.metric("Ortalama", f"{ortalama:,.0f} TL")
-k4.metric(
-    "Tahmini Fazla Ödeme",
-    f"{toplam_fazla_odeme:,.0f} TL/yıl"
-)
+        k4.metric("Tahmini Fazla Ödeme", f"{toplam_fazla_odeme:,.0f} TL/yıl")
         st.divider()
 
         col_left, col_right = st.columns(2)

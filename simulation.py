@@ -1,19 +1,10 @@
-import io
+io
 import re
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from pypdf import PdfReader
 import streamlit as st
-
-# pypdf kontrolü (gerçek PDF okuyucu)
-try:
-    from pypdf import PdfReader
-except ImportError:
-    import subprocess
-    import sys
-
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pypdf"])
-    from pypdf import PdfReader
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(
@@ -336,7 +327,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Gerçek PDF okuyucu (pypdf) ve esnek ayrıştırma motoru devrede. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur.
+            <b>📁 BİLGİ:</b> Gerçek PDF okuyucu (pypdf) devrededir. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur.
         </div>
         """,
         unsafe_allow_html=True,
@@ -368,7 +359,7 @@ else:
                     otomatik_tespit_hat_sayisi = (
                         len(df_excel) if len(df_excel) > 0 else 1
                     )
-                # PDF Dosyaları (pypdf Gerçek Okuyucu)
+                # PDF Dosyaları (pypdf)
                 elif dosya_adi.endswith(".pdf"):
                     reader = PdfReader(io.BytesIO(dosya_icerigi))
                     for page in reader.pages:

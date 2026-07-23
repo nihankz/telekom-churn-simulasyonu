@@ -231,28 +231,6 @@ if sayfa == "👤 Bireysel":
 💰 Yıllık yaklaşık **{tasarruf_yil:,.0f} TL** tasarruf sağlayabilirsiniz.
 """)
 
-    st.divider()
-    st.subheader("🔔 SubOpt Akıllı Fiyat Alarmı")
-    esik = aylik * 0.90
-    if rakip < esik:
-        st.success(f"""
-🟢 Daha avantajlı bir teklif bulundu!
-
-Mevcut Fatura : **{aylik:.0f} TL**
-
-Yeni Teklif : **{rakip:.0f} TL**
-
-💰 Yıllık yaklaşık **{tasarruf:,.0f} TL** tasarruf edebilirsiniz.
-
-👉 Operatör değişikliği değerlendirilebilir.
-""")
-    else:
-        st.info("""
-Şu anda piyasada belirgin şekilde daha avantajlı bir teklif görünmüyor.
-
-SubOpt yeni kampanyaları takip ederek sizi bilgilendirecek.
-""")
-
 # ==========================================================
 # KURUMSAL MODÜLLER
 # ==========================================================
@@ -594,51 +572,6 @@ SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde
                 st.warning(f"⚠️ Önümüzdeki 30 gün içinde bitecek {len(yaklasan)} taahhüt bulundu.")
             else:
                 st.success("✅ Önümüzdeki 30 gün içinde bitecek taahhüt bulunmuyor.")
-
-        st.divider()
-        st.subheader("🔔 Akıllı Fiyat Alarmı")
-        if "Rakip Teklifi (TL)" in df.columns:
-
-            df["Rakip Teklifi (TL)"] = pd.to_numeric(
-                df["Rakip Teklifi (TL)"],
-                errors="coerce"
-            )
-
-            alarm = df[df["Rakip Teklifi (TL)"] < df[kolon]].copy()
-
-            if len(alarm):
-
-                alarm["Yıllık Tasarruf"] = (
-                    (df[kolon] - alarm["Rakip Teklifi (TL)"]) * 12
-                )
-
-                st.success(
-                    f"🎯 {len(alarm)} hatta daha avantajlı teklif bulundu."
-                )
-
-                st.metric(
-                    "Toplam Tasarruf",
-                    f"{alarm['Yıllık Tasarruf'].sum():,.0f} TL / yıl"
-                )
-
-                st.dataframe(
-                    alarm[
-                        [
-                            "Hat No",
-                            "Kullanıcı",
-                            "Operatör",
-                            kolon,
-                            "Rakip Teklifi (TL)",
-                            "Yıllık Tasarruf",
-                        ]
-                    ],
-                    use_container_width=True,
-                )
-
-            else:
-                st.info("Şu an daha avantajlı rakip teklifi bulunamadı.")
-        else:
-            st.info("Yüklenen veri setinde 'Rakip Teklifi (TL)' sütunu bulunamadığı için akıllı fiyat alarmı gösterilemiyor.")
 
         st.divider()
         st.subheader("🚨 Fatura Anomali Tespiti")

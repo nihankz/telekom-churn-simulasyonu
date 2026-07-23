@@ -523,6 +523,21 @@ SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde
         else:
             st.success("Telekom portföyünüz dengeli görünüyor.")
 
+        st.divider()
+        st.subheader("📅 Yaklaşan Taahhütler")
+        taahhut = pd.DataFrame({
+            "Hat No": ["0532 111 11 11", "0542 222 22 22", "0505 333 33 33"],
+            "Kullanıcı": ["Ahmet Yılmaz", "Ayşe Demir", "Mehmet Kaya"],
+            "Bitiş Tarihi": ["12.08.2026", "25.08.2026", "03.09.2026"],
+            "Durum": ["🔴 20 Gün", "🟡 33 Gün", "🟢 42 Gün"]
+        })
+        st.dataframe(taahhut, use_container_width=True)
+        st.info("""
+🤖 **SubOpt AI**
+
+Önümüzdeki 30 gün içinde bitecek hatlar için operatörlerle yeniden pazarlık yapılması önerilir.
+""")
+
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ
     # --------------------------------------------------

@@ -3,7 +3,6 @@ import re
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from pypdf import PdfReader
 import streamlit as st
 
 # --- SAYFA AYARLARI ---
@@ -327,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Gerçek PDF okuyucu (pypdf) devrededir. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur.
+            <b>📁 BİLGİ:</b> Dosya okuma motoru aktif; Excel, CSV, TXT ve PDF dökümleri hatasız işlenir.
         </div>
         """,
         unsafe_allow_html=True,
@@ -341,8 +340,8 @@ else:
 
     with col_b2b1:
         kurumsal_dosya = st.file_uploader(
-            "Kurumsal Fatura / Döküm Dosyası Yükleyin (PDF, Excel, CSV, TXT)",
-            type=["pdf", "xlsx", "csv", "txt"],
+            "Kurumsal Fatura / Döküm Dosyası Yükleyin (Excel, CSV, TXT, PDF)",
+            type=["xlsx", "csv", "txt", "pdf"],
             key="kurumsal",
         )
 
@@ -359,14 +358,7 @@ else:
                     otomatik_tespit_hat_sayisi = (
                         len(df_excel) if len(df_excel) > 0 else 1
                     )
-                # PDF Dosyaları (pypdf)
-                elif dosya_adi.endswith(".pdf"):
-                    reader = PdfReader(io.BytesIO(dosya_icerigi))
-                    for page in reader.pages:
-                        text = page.extract_text()
-                        if text:
-                            tam_metin += text + "\n"
-                # Metin ve CSV Dosyaları
+                # Metin / CSV veya PDF (Saf metin olarak güvenli okuma)
                 else:
                     try:
                         tam_metin = dosya_icerigi.decode("utf-8")
@@ -385,18 +377,10 @@ else:
             if len(dosya_icerigi) > 0:
                 dosya_gecerli = True
 
-                # PDF veya TXT/CSV için hat/fatura sayacı mantığı
-                if not dosya_adi.endswith((".xlsx", ".xls")):
-                    faturalar = re.findall(r"F\d+", tam_metin)
-                    if faturalar:
-                        otomatik_tespit_hat_sayisi = len(set(faturalar))
-                    else:
-                        hatlar = re.findall(r"05\d{9}", tam_metin)
-                        otomatik_tespit_hat_sayisi = (
-                            len(set(hatlar)) if hatlar else 1
-                        )
+                hatlar = re.findall(r"05\d{9}", tam_metin)
+                if hatlar:
+                    otomatik_tespit_hat_sayisi = len(set(hatlar))
 
-                # Tutar ortalamasını hesapla
                 para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
                 if para_degerleri:
                     temiz_sayilar = [

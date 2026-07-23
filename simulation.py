@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Yükleyeceğiniz şirket hat dökümleri (PDF, Excel, CSV veya TXT) esnek ayrıştırma motoru sayesinde hat numaraları ve tutarlar baz alınarak taranır.
+            <b>📁 BİLGİ:</b> Yükleyeceğiniz şirket hat dökümleri okunur; ancak binlerce hat içeren kurumsal yapılarda dilediğiniz gibi üstünü yazarak hat sayısını manuel simüle edebilirsiniz.
         </div>
         """,
         unsafe_allow_html=True,
@@ -392,17 +392,24 @@ else:
             with st.expander("🔍 Dosyadan Okunan Ham Metin"):
                 st.code(tam_metin)
 
-            # --- ESNEK GSM VE VERİ TESPİTİ ---
-            gsm_eslesmeleri = re.findall(
-                r"0\s*[5]\s*\d[\s*\d]{9}", temizlenmis_metin
+            temiz_rakamlar = re.findall(r"\d+", temizlenmis_metin)
+            bulunan_gsm = []
+            tum_rakamlar_birlesik = "".join(temiz_rakamlar)
+
+            for i in range(len(tum_rakamlar_birlesik) - 10):
+                parca = tum_rakamlar_birlesik[i : i + 11]
+                if parca.startswith("05") and parca not in bulunan_gsm:
+                    bulunan_gsm.append(parca)
+
+            standart_arama = re.findall(
+                r"0\s*5\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}", temizlenmis_metin
             )
-            if not gsm_eslesmeleri:
-                rakamlar_sadece = re.findall(r"\d+", temizlenmis_metin)
-                gsm_eslesmeleri = [
-                    r
-                    for r in rakamlar_sadece
-                    if len(r) == 11 and r.startswith("05")
-                ]
+            for s in standart_arama:
+                temiz_s = re.sub(r"\D", "", s)
+                if len(temiz_s) == 11 and temiz_s not in bulunan_gsm:
+                    bulunan_gsm.append(temiz_s)
+
+            gsm_eslesmeleri = bulunan_gsm
 
             if len(gsm_eslesmeleri) == 0:
                 dosya_gecerli = False
@@ -415,13 +422,17 @@ else:
                 gercek_hat_sayisi = len(set(gsm_eslesmeleri))
 
                 para_degerleri = re.findall(
-                    r"\b\d{1,5}[.,]\d{2}\b", temizlenmis_metin
+                    r"\b\d{1,4}[.,]\d{2}\b", tam_metin
                 )
                 if para_degerleri:
                     temiz_sayilar = [
-                        float(p.replace(",", "."))
+                        (
+                            float(p.replace(".", "").replace(",", "."))
+                            if "." in p and "," in p
+                            else float(p.replace(",", "."))
+                        )
                         for p in para_degerleri
-                        if 10 < float(p.replace(",", ".")) < 100000
+                        if 10 < float(p.replace(",", ".")) < 50000
                     ]
                     if temiz_sayilar:
                         hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
@@ -443,29 +454,31 @@ else:
             )
 
     with col_b2b2:
-        if dosya_gecerli:
-            toplam_hat = st.number_input(
-                "Şirket Toplu Hat Sayısı",
-                value=int(gercek_hat_sayisi),
-                step=1,
-                format="%d",
-            )
-            ortalama_hat_maliyeti = st.number_input(
-                "Hat Başı Ortalama Fatura (TL)",
-                value=int(round(hesaplanan_ortalama_tutar)),
-                step=10,
-                format="%d",
-            )
-        else:
-            toplam_hat = st.number_input(
-                "Şirket Toplu Hat Sayısı", value=0, disabled=True, format="%d"
-            )
-            ortalama_hat_maliyeti = st.number_input(
-                "Hat Başı Ortalama Fatura (TL)",
-                value=0,
-                disabled=True,
-                format="%d",
-            )
+        # Dosya yüklendiyse varsayılan olarak okunan sayıyı getir, ancak max limiti 50000'e çıkararak binlerce hatlı simülasyona izin ver
+        varsayilan_hat = int(gercek_hat_sayisi) if dosya_gecerli else 0
+        toplam_hat = st.number_input(
+            "Şirket Toplu Hat Sayısı",
+            min_value=0,
+            max_value=50000,
+            value=varsayilan_hat,
+            step=10,
+            format="%d",
+            disabled=not dosya_gecerli,
+            help=(
+                "Dosyadan okunan sayıyı büyütebilir veya büyük ölçekli senaryolar"
+                " için (örn. 1000 hat) manuel güncelleyebilirsiniz."
+            ),
+        )
+
+        ortalama_hat_maliyeti = st.number_input(
+            "Hat Başı Ortalama Fatura (TL)",
+            min_value=0,
+            max_value=10000,
+            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 0,
+            step=50,
+            format="%d",
+            disabled=not dosya_gecerli,
+        )
 
     if not dosya_gecerli:
         st.warning(
@@ -488,10 +501,10 @@ else:
             <div class="b2b-card">
                 <h3 style='color: #A5B4FC; margin-top:0;'>📊 Kurumsal Filo Teşhis ve Tasarruf Raporu</h3>
                 <p style='color: #E0E7FF; font-size:16px;'>
-                    <b>{toplam_hat} adet kurumsal hat</b> üzerinde yapılan toplu döküm ve kullanım analizi sonucunda:
+                    <b>{toplam_hat:,} adet kurumsal hat</b> üzerinden yapılan toplu döküm ve kullanım analizi sonucunda:
                 </p>
                 <ul>
-                    <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi} personel (%{int(atıl_hat_orani*100)})</li>
+                    <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi:,} personel (%{int(atıl_hat_orani*100)})</li>
                     <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
                     <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
                 </ul>

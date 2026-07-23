@@ -182,6 +182,34 @@ else:
       toplam_tutar = df[kolon].sum()
       ortalama = df[kolon].mean()
 
+    # Risk skoru hesaplaması
+    if not sayisal.empty and kolon:
+      df["Risk Skoru"] = np.where(
+          df[kolon] > ortalama * 1.5,
+          "🔴 Yüksek",
+          np.where(df[kolon] > ortalama, "🟡 Orta", "🟢 Düşük"),
+      )
+      limit = ortalama * 1.5
+      riskli = df[df[kolon] > limit]
+      potansiyel = riskli[kolon].sum() * 0.20
+
+      # Dashboard üstüne eklenen uyarı kutusu
+      st.error(
+          f"""
+# 🚨 Tasarruf Alarmı
+
+SubOpt analizine göre şirketinizde
+
+**{len(riskli)} adet yüksek maliyetli hat** bulundu.
+
+Bu hatlar optimize edilirse
+
+## 💰 Yaklaşık {potansiyel*12:,.0f} TL
+
+yıllık tasarruf sağlanabilir.
+"""
+      )
+
     k1, k2, k3 = st.columns(3)
 
     k1.metric("Toplam Hat", f"{toplam_hat}")
@@ -241,18 +269,9 @@ else:
 
     if not sayisal.empty and kolon:
 
-      fig2 = px.histogram(
-          df, x=kolon, nbins=20, title=f"{kolon} Dağılımı"
-      )
+      fig2 = px.histogram(df, x=kolon, nbins=20, title=f"{kolon} Dağılımı")
 
       st.plotly_chart(fig2, use_container_width=True)
-
-      st.subheader("💰 En Pahalı 10 Kayıt")
-
-      st.dataframe(
-          df.sort_values(kolon, ascending=False).head(10),
-          use_container_width=True,
-      )
 
       st.divider()
 
@@ -291,10 +310,6 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
 
       st.subheader("🚨 Ortalama Üzeri Maliyetli Hatlar")
 
-      limit = ortalama * 1.5
-
-      riskli = df[df[kolon] > limit]
-
       if len(riskli):
 
         st.warning(
@@ -317,8 +332,6 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
 
         st.subheader("💸 SubOpt Tasarruf Potansiyeli")
 
-        potansiyel = riskli[kolon].sum() * 0.20
-
         st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL")
 
         st.progress(min(potansiyel / 10000, 1.0))
@@ -326,6 +339,21 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
       else:
         st.success("Riskli maliyet oluşturan hat bulunamadı.")
 
+      st.subheader("💰 En Pahalı 10 Kayıt")
+
+      st.dataframe(
+          df.sort_values(kolon, ascending=False)[
+              [
+                  "Hat No",
+                  "Kullanıcı",
+                  "Departman",
+                  "Operatör",
+                  kolon,
+                  "Risk Skoru",
+              ]
+          ].head(10),
+          use_container_width=True,
+      )
+
   else:
     st.info("📄 Analiz için Excel dosyası yükleyin.")
-

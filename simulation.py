@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Dosya okuma motoru aktif; Excel, CSV, TXT ve PDF dökümleri hatasız işlenir.
+            <b>📁 BİLGİ:</b> Çoklu hat ve dosya tarama motoru aktif; Excel satırları ve tüm metin tabanlı dökümlerdeki hatlar eksiksiz sayılır.
         </div>
         """,
         unsafe_allow_html=True,
@@ -341,7 +341,7 @@ else:
     with col_b2b1:
         kurumsal_dosya = st.file_uploader(
             "Kurumsal Fatura / Döküm Dosyası Yükleyin (Excel, CSV, TXT, PDF)",
-            type=["xlsx", "csv", "txt", "pdf"],
+            type=["xlsx", "xls", "csv", "txt", "pdf"],
             key="kurumsal",
         )
 
@@ -358,7 +358,7 @@ else:
                     otomatik_tespit_hat_sayisi = (
                         len(df_excel) if len(df_excel) > 0 else 1
                     )
-                # Metin / CSV veya PDF (Saf metin olarak güvenli okuma)
+                # Metin, CSV veya PDF Dökümleri
                 else:
                     try:
                         tam_metin = dosya_icerigi.decode("utf-8")
@@ -377,9 +377,21 @@ else:
             if len(dosya_icerigi) > 0:
                 dosya_gecerli = True
 
-                hatlar = re.findall(r"05\d{9}", tam_metin)
-                if hatlar:
-                    otomatik_tespit_hat_sayisi = len(set(hatlar))
+                # Excel harici dosyalarda tüm telefon numaralarını / hatları bul
+                if not dosya_adi.endswith((".xlsx", ".xls")):
+                    bulunan_hatlar = re.findall(
+                        r"(?:0?5\d{2}[ \-]?\d{3}[ \-]?\d{2}[ \-]?\d{2})",
+                        tam_metin,
+                    )
+                    if bulunan_hatlar:
+                        otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
+                    else:
+                        # Alternatif olarak satır bazlı sayım yap
+                        satirlar = [
+                            s for s in tam_metin.split("\n") if len(s.strip()) > 5
+                        ]
+                        if len(satirlar) > 1:
+                            otomatik_tespit_hat_sayisi = len(satirlar)
 
                 para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
                 if para_degerleri:
@@ -394,8 +406,8 @@ else:
                         hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
 
                 st.success(
-                    f"✅ Kurumsal Fatura / Dosya başarıyla okundu! Tespit edilen"
-                    f" hat / kayıt sayısı: **{otomatik_tespit_hat_sayisi}**"
+                    f"✅ Kurumsal Fatura / Dosya başarıyla okundu! Toplam tespit"
+                    f" edilen hat / kayıt sayısı: **{otomatik_tespit_hat_sayisi}**"
                 )
             else:
                 dosya_gecerli = False

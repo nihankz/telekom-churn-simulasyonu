@@ -322,7 +322,7 @@ else:
 
   with col_b2b1:
     kurumsal_dosya = st.file_uploader(
-        "Kurumsal Fatura / Döküm Yükleyin (PDF, Excel, CSV, TXT)",
+        "Kurumsal Fatura / Döküm Yüklenen Dosya (PDF, Excel, CSV, TXT)",
         type=["pdf", "xlsx", "csv", "txt"],
         key="kurumsal",
     )
@@ -331,77 +331,62 @@ else:
       dosya_adi = kurumsal_dosya.name.lower()
       tam_metin = ""
 
-      # 1. Dosya İçeriğini Okuma
+      # Dosya İçeriğini Çekme
       try:
         if dosya_adi.endswith(".pdf"):
           import pypdf
+
           reader = pypdf.PdfReader(kurumsal_dosya)
           for page in reader.pages:
-            tam_metin += (page.extract_text() or "") + "\n"
+            extracted = page.extract_text()
+            if extracted:
+              tam_metin += extracted + "\n"
+          if not tam_metin.strip():
+            tam_metin = (
+                kurumsal_dosya.getvalue().decode("utf-8", errors="ignore")
+            )
         elif dosya_adi.endswith((".xlsx", ".xls")):
           df_excel = pd.read_excel(kurumsal_dosya)
-          tam_metin = df_excel.to_string().lower()
+          tam_metin = df_excel.to_string()
         else:
-          tam_metin = (
-              kurumsal_dosya.getvalue().decode("utf-8", errors="ignore").lower()
-          )
+          tam_metin = kurumsal_dosya.getvalue().decode("utf-8", errors="ignore")
       except Exception:
         try:
-          tam_metin = (
-              kurumsal_dosya.getvalue()
-              .decode("latin-1", errors="ignore")
-              .lower()
-          )
+          tam_metin = kurumsal_dosya.getvalue().decode("latin-1", errors="ignore")
         except:
-          pass
+          tam_metin = ""
 
       metin_kontrol = tam_metin.lower()
 
-      # 2. KESİN TÜR KONTROLÜ (CV / ÖZGEÇMİŞ & METİN ENGELLEME)
-      # Belgede CV olduğunu ele veren imza kelimeler:
-      cv_kriterleri = [
-          "eğitim",
-          "staj",
-          "üniversite",
-          "mezun",
-          "deneyim",
-          "yetenekler",
-          "sertifika",
-          "bölümü",
-      ]
-      cv_kelime_sayisi = sum(
-          1 for kelime in cv_kriterleri if kelime in metin_kontrol
-      )
-
-      # Belgede kurumsal fatura/döküm olduğunu ele veren imza kelimeler/yapılar:
-      fatura_kriterleri = [
+      # KATI DOĞRULAMA: Sadece Kesin Kurumsal Fatura / Döküm Şablonları Kabul Edilir!
+      # Belgede tablonun geçerli sayılması için aşağıdaki anahtar kelimelerden en az 3 tanesi MUTLAKA geçmelidir.
+      zorunlu_tablo_anahtarlari = [
           "fatura no",
           "hat no",
-          "abone no",
-          "toplam (tl)",
-          "operatör",
           "departman",
+          "toplam (tl)",
+          "abone no",
+          "operatör",
       ]
-      fatura_kelime_sayisi = sum(
-          1 for kelime in fatura_kriterleri if kelime in metin_kontrol
+      bulunan_anahtar_sayisi = sum(
+          1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in metin_kontrol
       )
 
-      # Eğer CV kelimeleri yoğunsa VEYA yeterli fatura başlığı yoksa kesinlikle reddet!
-      if cv_kelime_sayisi >= 2 or fatura_kelime_sayisi < 2:
+      # Ek olarak dosya içinde en az bir adet kurumsal hat deseni (05xx...) olmalı
+      gsm_eslesmeleri = re.findall(r"05\d{9}", metin_kontrol)
+
+      # Eğer gerekli tablo başlıkları veya hat kalıpları eksikse (örn: CV, makale, rastgele metin), direkt reddet!
+      if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(
-            "❌ **GEÇERSİZ BELGE TÜRÜ:** Yüklediğiniz dosya bir özgeçmiş (CV)"
-            " veya standart metin içeriyor. Bu modül yalnızca kurumsal fatura"
-            " tablolarını ve hat dökümlerini kabul eder."
+            "❌ **GEÇERSİZ BELGE YAPISI:** Yüklenen dosya resmi bir kurumsal"
+            " fatura veya hat döküm tablosu içermiyor. (Beklenen:"
+            " 'Fatura No', 'Hat No', 'Departman' gibi kurumsal sütun başlıkları"
+            " ve hat listesi)."
         )
       else:
         dosya_gecerli = True
-
-        gsm_eslesmeleri = re.findall(r"05\d{9}", metin_kontrol)
-        if gsm_eslesmeleri:
-          gercek_hat_sayisi = len(set(gsm_eslesmeleri))
-        else:
-          gercek_hat_sayisi = 10
+        gercek_hat_sayisi = len(set(gsm_eslesmeleri))
 
         para_degerleri = re.findall(r"\b\d{3,4}[.,]\d{2}\b", metin_kontrol)
         if para_degerleri:
@@ -413,13 +398,13 @@ else:
           if temiz_sayilar:
             hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
           else:
-            hesaplanan_ortalama_tutar = 1618.0
+            hesaplanan_ortalama_tutar = 1500.0
         else:
-          hesaplanan_ortalama_tutar = 1618.0
+          hesaplanan_ortalama_tutar = 1500.0
 
         st.success(
-            f"✅ Kurumsal Fatura / Döküm ({kurumsal_dosya.name}) başarıyla"
-            f" doğrulandı ve okundu! Tespit edilen hat sayısı:"
+            f"✅ Şirket Toplu Fatura / Döküm Dosyası ({kurumsal_dosya.name})"
+            f" başarıyla doğrulandı ve okundu! Tespit edilen hat sayısı:"
             f" {gercek_hat_sayisi}"
         )
     else:

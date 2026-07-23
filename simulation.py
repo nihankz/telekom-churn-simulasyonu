@@ -563,8 +563,8 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
       pdf = buffer.getvalue()
 
       st.download_button(
-          "📄 PDF Yönetici Raporunu İndir",
-          pdf,
+          label="📄 PDF Yönetici Raporunu İndir",
+          data=pdf,
           file_name="SubOpt_Rapor.pdf",
           mime="application/pdf",
       )

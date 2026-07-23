@@ -325,8 +325,7 @@ with c_left:
             margin=dict(l=20, r=20, t=30, b=20),
         )
         st.plotly_chart(fig_gauge, use_container_width=True)
-
-    with c_right:
+with c_right:
         st.markdown("##### 📈 Birim GB Maliyet Kıyaslaması")
         m1, m2 = st.columns(2)
         m1.metric("Mevcut GB Başı Maliyet", f"{gb_maliyet_mevcut:.2f} TL/GB")

@@ -215,4 +215,136 @@ if sayfa=="👤 Bireysel":
         fig,
         use_container_width=True
     )
+    # ==========================================================
+# KURUMSAL
+# ==========================================================
+
+else:
+
+    st.header("🏢 Kurumsal Filo Analizi")
+
+    dosya = st.file_uploader(
+        "Excel veya CSV yükleyin",
+        type=["xlsx", "xls", "csv"]
+    )
+
+    if dosya is not None:
+
+        if dosya.name.endswith(("xlsx", "xls")):
+            df = pd.read_excel(dosya)
+        else:
+            df = pd.read_csv(dosya)
+
+        df = df.dropna(how="all")
+
+        st.success(f"✅ {len(df)} kayıt başarıyla okundu.")
+
+        st.divider()
+
+        st.dataframe(df, use_container_width=True)
+
+        st.divider()
+
+        toplam_hat = len(df)
+
+        sayisal = df.select_dtypes(include=np.number)
+
+        toplam_tutar = 0
+        ortalama = 0
+
+        if not sayisal.empty:
+
+            kolon = st.selectbox(
+                "Toplam maliyet sütunu",
+                sayisal.columns
+            )
+
+            toplam_tutar = df[kolon].sum()
+            ortalama = df[kolon].mean()
+
+        k1, k2, k3 = st.columns(3)
+
+        k1.metric(
+            "Toplam Hat",
+            f"{toplam_hat}"
+        )
+
+        k2.metric(
+            "Toplam Maliyet",
+            f"{toplam_tutar:,.0f} TL"
+        )
+
+        k3.metric(
+            "Ortalama",
+            f"{ortalama:,.0f} TL"
+        )
+
+        st.divider()
+
+        kategorik = list(
+            df.select_dtypes(include="object").columns
+        )
+
+        if kategorik:
+
+            secim = st.selectbox(
+                "Dağılım Grafiği",
+                kategorik
+            )
+
+            grafik = (
+                df[secim]
+                .astype(str)
+                .value_counts()
+                .reset_index()
+            )
+
+            grafik.columns = [secim, "Adet"]
+
+            fig = px.bar(
+                grafik,
+                x=secim,
+                y="Adet",
+                text="Adet",
+                title=f"{secim} Dağılımı"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        if not sayisal.empty:
+
+            fig2 = px.histogram(
+                df,
+                x=kolon,
+                nbins=20,
+                title=f"{kolon} Dağılımı"
+            )
+
+            st.plotly_chart(
+                fig2,
+                use_container_width=True
+            )
+
+            st.subheader("💰 En Pahalı 10 Kayıt")
+
+            st.dataframe(
+                df.sort_values(
+                    kolon,
+                    ascending=False
+                ).head(10),
+                use_container_width=True
+            )
+
+            tasarruf = toplam_tutar * 0.15
+
+            st.success(
+                f"💸 Tahmini yıllık tasarruf: {tasarruf:,.0f} TL"
+            )
+
+    else:
+
+        st.info("📄 Analiz için Excel dosyası yükleyin.")
 

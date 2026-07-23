@@ -299,7 +299,7 @@ if hediye_gb > 0:
             """,
             unsafe_allow_html=True,
         )
-    c_left, c_right = st.columns([1, 1])
+c_left, c_right = st.columns([1, 1])
 
     with c_left:
         st.markdown("##### 🎯 Fiyat Verimliliği (Piyasa Göstergesi)")

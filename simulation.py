@@ -254,9 +254,77 @@ else:
           use_container_width=True,
       )
 
-      tasarruf = toplam_tutar * 0.15
+      st.divider()
 
-      st.success(f"💸 Tahmini yıllık tasarruf: {tasarruf:,.0f} TL")
+      st.subheader("🤖 AI Executive Summary")
+
+      en_pahali_departman = (
+          df.groupby("Departman")[kolon].sum().sort_values(ascending=False)
+      )
+
+      en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0]
+
+      st.info(
+          f"""
+### 📊 Yönetici Özeti
+
+📱 Aktif Hat Sayısı: **{toplam_hat}**
+
+💰 Toplam Aylık Telekom Gideri:
+**{toplam_tutar:,.2f} TL**
+
+📈 Hat Başına Ortalama:
+**{ortalama:,.2f} TL**
+
+🏢 En yüksek maliyetli departman:
+**{en_pahali_departman.index[0]}**
+(**{en_pahali_departman.iloc[0]:,.2f} TL**)
+
+🔥 En pahalı hat:
+**{en_pahali_hat['Hat No']}**
+(**{en_pahali_hat[kolon]:,.2f} TL**)
+
+💡 SubOpt önerisi:
+En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
+"""
+      )
+
+      st.subheader("🚨 Ortalama Üzeri Maliyetli Hatlar")
+
+      limit = ortalama * 1.5
+
+      riskli = df[df[kolon] > limit]
+
+      if len(riskli):
+
+        st.warning(
+            f"{len(riskli)} adet hat şirket ortalamasının %50 üzerinde maliyet"
+            " oluşturuyor."
+        )
+
+        st.dataframe(
+            riskli[
+                [
+                    "Hat No",
+                    "Kullanıcı",
+                    "Departman",
+                    "Operatör",
+                    kolon,
+                ]
+            ],
+            use_container_width=True,
+        )
+
+        st.subheader("💸 SubOpt Tasarruf Potansiyeli")
+
+        potansiyel = riskli[kolon].sum() * 0.20
+
+        st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL")
+
+        st.progress(min(potansiyel / 10000, 1.0))
+
+      else:
+        st.success("Riskli maliyet oluşturan hat bulunamadı.")
 
   else:
     st.info("📄 Analiz için Excel dosyası yükleyin.")

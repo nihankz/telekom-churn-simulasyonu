@@ -561,51 +561,6 @@ SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde
             else:
                 st.success("✅ Önümüzdeki 30 gün içinde bitecek taahhüt bulunmuyor.")
 
-        st.divider()
-        st.subheader("🔔 Akıllı Fiyat Alarmı")
-        if "Rakip Teklifi (TL)" in df.columns:
-
-            df["Rakip Teklifi (TL)"] = pd.to_numeric(
-                df["Rakip Teklifi (TL)"],
-                errors="coerce"
-            )
-
-            alarm = df[df["Rakip Teklifi (TL)"] < df[kolon]].copy()
-
-            if len(alarm):
-
-                alarm["Yıllık Tasarruf"] = (
-                    (df[kolon] - alarm["Rakip Teklifi (TL)"]) * 12
-                )
-
-                st.success(
-                    f"🎯 {len(alarm)} hatta daha avantajlı teklif bulundu."
-                )
-
-                st.metric(
-                    "Toplam Tasarruf",
-                    f"{alarm['Yıllık Tasarruf'].sum():,.0f} TL / yıl"
-                )
-
-                st.dataframe(
-                    alarm[
-                        [
-                            "Hat No",
-                            "Kullanıcı",
-                            "Operatör",
-                            kolon,
-                            "Rakip Teklifi (TL)",
-                            "Yıllık Tasarruf",
-                        ]
-                    ],
-                    use_container_width=True,
-                )
-
-            else:
-                st.info("Şu an daha avantajlı rakip teklifi bulunamadı.")
-        else:
-            st.info("Yüklenen veri setinde 'Rakip Teklifi (TL)' sütunu bulunamadığı için akıllı fiyat alarmı gösterilemiyor.")
-
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ
     # --------------------------------------------------

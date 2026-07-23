@@ -352,7 +352,7 @@ fig_line.add_trace(
             line=dict(color="#EF4444", width=3),
         )
     )
-    fig_line.add_trace(
+fig_line.add_trace(
         go.Scatter(
             x=aylar,
             y=kumulatif_rakip,

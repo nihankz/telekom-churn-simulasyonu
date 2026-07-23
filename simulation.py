@@ -368,7 +368,7 @@ fig_line.update_layout(
         xaxis_title="Ay",
         yaxis_title="Toplam Maliyet (TL)",
     )
-    st.plotly_chart(fig_line, use_container_width=True)
+st.plotly_chart(fig_line, use_container_width=True)
 
 else:
     # ==========================

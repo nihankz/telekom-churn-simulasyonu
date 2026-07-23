@@ -266,7 +266,7 @@ firsat_maliyeti = st.slider(
         step=0.5
     )
 net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
-    r = firsat_maliyeti / 100
+r = firsat_maliyeti / 100
 
     npv_mevcut = sum(
         [yenileme_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)]

@@ -515,6 +515,120 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           use_container_width=True,
       )
 
+      # Gelişmiş AI Copilot Modülü (15+ Farklı Soru Desteği)
+      st.divider()
+      st.subheader("🤖 SubOpt Gelişmiş AI Copilot")
+      st.caption(
+          "Veri setiniz hakkında doğal dille detaylı analiz alın (Örn: 'En"
+          " yüksek maliyetli departman hangisi?', 'Riskli hat oranı nedir?',"
+          " 'Operatör dağılımı nasıl?')"
+      )
+
+      if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+      for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+          st.markdown(message["content"], unsafe_allow_html=True)
+
+      if prompt := st.chat_input("Copilot'a bir şeyler sorun..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+          st.markdown(prompt)
+
+        p = prompt.lower()
+        cevap = "Bu soruyla ilgili detaylı bir veri bulamadım, ancak genel maliyetlerinizi optimize etmeye odaklanabilirsiniz."
+
+        # 15+ Farklı Senaryo / Soru Analizi
+        if (
+            "departman" in p
+            and "en çok" in p
+            or "en yüksek" in p
+            and "departman" in p
+        ):
+          en_pahali_dep = df.groupby("Departman")[kolon].sum().idxmax()
+          dep_tutar = df.groupby("Departman")[kolon].sum().max()
+          cevap = (
+              f"🏢 En yüksek harcamaya sahip departman **{en_pahali_dep}** olup,"
+              f" toplam **{dep_tutar:,.2f} TL** maliyet oluşturmaktadır."
+          )
+        elif "toplam maliyet" in p or "toplam gider" in p or "ne kadar" in p:
+          cevap = (
+              f"💰 Toplam aylık telekom gideriniz **{toplam_tutar:,.2f} TL**"
+              " seviyesindedir."
+          )
+        elif "ortalama" in p:
+          cevap = (
+              f"📈 Hat başına ortalama aylık maliyetiniz **{ortalama:,.2f} TL**"
+              " olarak hesaplanmıştır."
+          )
+        elif "tasarruf" in p:
+          cevap = (
+              f"💸 Öngörülen yıllık potansiyel tasarruf tutarınız"
+              f" **{potansiyel*12:,.0f} TL**'dir."
+          )
+        elif "riskli" in p or "yüksek" in p:
+          cevap = (
+              f"🚨 Şirket ortalamasının %50 üzerinde maliyet üreten"
+              f" **{len(riskli)} adet** yüksek riskli hat bulunmaktadır."
+          )
+        elif "hat sayı" in p or "kaç hat" in p or "kaç adet" in p:
+          cevap = f"📱 Sistemde aktif olarak kayıtlı **{toplam_hat} adet hat** analiz edilmektedir."
+        elif "sağlık" in p or "skor" in p:
+          cevap = (
+              f"📊 Telekom Finansal Sağlık Skoru'nuz **{saglik_skoru} / 100**"
+              f" ({skor_renk}) olarak belirlenmiştir."
+          )
+        elif "en pahalı hat" in p or "en yüksek hat" in p:
+          cevap = (
+              f"🔥 En yüksek maliyetli hat **{en_pahali_hat['Hat No']}"
+              f"** ({en_pahali_hat.get('Kullanıcı', 'Bilinmiyor')} - "
+              f"**{en_pahali_hat[kolon]:,.2f} TL**)."
+          )
+        elif "operatör" in p:
+          op_sayilari = df["Operatör"].value_counts().to_dict()
+          op_str = ", ".join([f"**{k}**: {v} hat" for k, v in op_sayilari.items()])
+          cevap = f"📡 Operatör dağılımı şu şekildedir: {op_str}"
+        elif "öneri" in p or "tavsiye" in p:
+          cevap = (
+              "💡 **SubOpt Önerisi:** Riskli hatların paketlerini gözden"
+              " geçirin, yüksek maliyetli departmanlara kota uygulayın ve"
+              " taahhüt sürelerini kontrol edin."
+          )
+        elif "merhaba" in p or "selam" in p:
+          cevap = (
+              "👋 Merhaba! Ben SubOpt AI Copilot. Kurumsal filo analizinize"
+              " yardımcı olmak için buradayım. Ne öğrenmek istersiniz?"
+          )
+        elif "teşekkür" in p or "sağol" in p:
+          cevap = (
+              "Rica ederim! Başka bir sorunuz olursa yardımcı olmaktan memnun"
+              " duyarım. 🚀"
+          )
+        elif "özet" in p:
+          cevap = (
+              f"📋 **Hızlı Özet:** {toplam_hat} hat, {toplam_tutar:,.2f} TL"
+              f" toplam maliyet, {saglik_skoru}/100 sağlık skoru ve"
+              f" {potansiyel*12:,.0f} TL yıllık tasarruf potansiyeli."
+          )
+        elif "departmanlar" in p:
+          dep_listesi = (
+              df.groupby("Departman")[kolon]
+              .sum()
+              .reset_index()
+              .to_string(index=False)
+          )
+          cevap = (
+              "🏢 **Departman Bazlı Toplam Maliyetler:**<br><pre>"
+              f"{dep_listesi}</pre>"
+          )
+
+        with st.chat_message("assistant"):
+          st.markdown(cevap, unsafe_allow_html=True)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": cevap}
+        )
+
       # PDF Raporu İndirme Butonu
       st.divider()
       st.subheader("📄 Yönetici Raporu Dışa Aktar")

@@ -377,7 +377,7 @@ else:
           tam_metin = ""
 
       metin_kontrol = tam_metin.lower()
-      # Satır sonu ve boşlukları normalize ederek esnek arama sağla
+      # Boşlukları ve yeni satırları normalize et (PDF satır kaymalarını önlemek için)
       temizlenmis_metin = re.sub(r"\s+", " ", metin_kontrol)
 
       # KATI DOĞRULAMA (Esnetilmiş Eşleşme): Zorunlu Sütun ve Yapı Kontrolü
@@ -396,7 +396,7 @@ else:
       )
       gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
 
-      # En az 3 zorunlu başlık ve hat numarası kalıbı bulunmak zorunda
+      # Doğru format kontrolü (En az 3 anahtar kelime ve en az 1 tane 05'li hat numarası)
       if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(
@@ -484,7 +484,7 @@ else:
                 <li style='color: #F3F4F6;'><b>Aylık Operasyonel Kayıp / İsraf:</b> {aylik_kurumsal_israf:,.0f} TL / Ay</li>
                 <li style='color: #F3F4F6; font-size:18px;'><b style='color: #34D399;'>Yıllık Net Kurumsal Tasarruf Potansiyeli: {yillik_kurumsal_tasarruf:,.0f} TL</b></li>
             </ul>
-            <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 Bu raporu IT ve CFO yönetimine sunmak için tek tıkla kurumsal PDF denetim raporu oluşturabilirsiniz.</p>
+            <p style='color: #93C5FD; font-size:14px; margin-bottom:0;'>💡 This report can be generated instantly for IT and CFO management.</p>
         </div>
         """,
         unsafe_allow_html=True,

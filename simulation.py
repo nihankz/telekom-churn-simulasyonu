@@ -150,6 +150,19 @@ else:
 
     df = df.dropna(how="all")
 
+    operators = ["Turkcell", "Vodafone", "Türk Telekom"]
+
+    if "Operatör" in df.columns:
+      bulunan = df["Operatör"].astype(str).isin(operators).sum()
+
+      if bulunan == 0:
+        st.error(
+            """
+❌ Bu dosya telekom hat dökümü olarak doğrulanamadı.
+"""
+        )
+        st.stop()
+
     st.success(f"✅ {len(df)} kayıt başarıyla okundu.")
 
     st.divider()

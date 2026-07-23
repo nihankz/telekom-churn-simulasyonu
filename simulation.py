@@ -193,51 +193,69 @@ if sayfa == "👤 Bireysel":
     st.divider()
 
     st.subheader("🧬 Kullanım DNA'n")
-    video = min(5, int(gb / 8) + 1)
-    oyun = 5 if gb > 40 else 4 if gb > 25 else 3 if gb > 15 else 2
-    is_kullanimi = 4 if aylik > 500 else 3
-    konusma = 5 if gercek < 10 else 3
-    seyahat = 4 if operator == "Vodafone" else 3
+    video = min(100, gb * 3)
+    oyun = min(100, gb * 2)
+    is_kullanimi = min(100, int(aylik / 6))
+    konusma = max(20, 100 - gb * 2)
+    seyahat = 80 if operator == "Vodafone" else 60
     
-    st.markdown(f"""
-### 📊 Kullanım Profili
+    dna = pd.DataFrame({
+        "Kategori": [
+            "🎬 Video",
+            "🎮 Oyun",
+            "💼 İş",
+            "📞 Konuşma",
+            "🌍 Seyahat"
+        ],
+        "Skor": [
+            video,
+            oyun,
+            is_kullanimi,
+            konusma,
+            seyahat
+        ]
+    })
 
-🎬 **Video Kullanımı** {"⭐"*video}
-
-🎮 **Mobil Oyun** {"⭐"*oyun}
-
-💼 **İş Kullanımı** {"⭐"*is_kullanimi}
-
-📞 **Konuşma** {"⭐"*konusma}
-
-🌍 **Seyahat** {"⭐"*seyahat}
-""")
+    fig = px.bar(
+        dna,
+        x="Skor",
+        y="Kategori",
+        orientation="h",
+        text="Skor",
+        color="Skor",
+        color_continuous_scale="Blues",
+    )
+    fig.update_layout(
+        template="plotly_dark",
+        height=320,
+        coloraxis_showscale=False,
+        margin=dict(l=10, r=10, t=20, b=10),
+        xaxis_title="",
+        yaxis_title="",
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
     if gb >= 40:
         profil = "🎬 Yoğun Veri Kullanıcısı"
+        aciklama = "Video ve sosyal medya kullanımı oldukça yüksek."
     elif gb >= 20:
         profil = "📱 Dengeli Kullanıcı"
+        aciklama = "İnternet ve konuşma kullanımınız dengeli."
     else:
-        profil = "☎️ Konuşma Ağırlıklı"
+        profil = "☎️ Konuşma Odaklı Kullanıcı"
+        aciklama = "İnternetten çok konuşma paketlerinden faydalanıyorsunuz."
 
-    st.success(f"""
-## 🤖 AI Sonucu
+    st.info(f"""
+### 🤖 AI Kullanım Analizi
 
-### {profil}
+**Profiliniz:** {profil}  
+{aciklama}
 
-SubOpt analizine göre kullanım alışkanlıkların incelendi.
+✅ Mevcut kullanım alışkanlıklarınıza göre
+**{en_iyi_paket['Paket']}** paketi sizin için en uygun seçenek olarak belirlendi.
 
-Senin kullanım profilin için **{en_iyi_paket['Paket']}**
-paketi en uygun seçenek olarak öne çıkıyor.
-
-💰 Tahmini yıllık tasarruf:
-**{tasarruf_yil:,.0f} TL**
+💰 Yıllık yaklaşık **{tasarruf_yil:,.0f} TL** tasarruf sağlayabilirsiniz.
 """)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=["Mevcut", "Rakip"], y=[aylik, rakip]))
-    fig.update_layout(template="plotly_dark", height=350)
-    st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================================
 # KURUMSAL MODÜLLER

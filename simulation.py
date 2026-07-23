@@ -287,13 +287,7 @@ Eksik sütunlar: {", ".join(sorted(missing))}
     ortalama = 0
     kolon = None
     
-    if not sayisal.empty:
-        if "Toplam (TL)" in df.columns:
-            kolon = "Toplam (TL)"
-        elif "Toplam" in df.columns:
-            kolon = "Toplam"
-        else:
-            kolon = st.selectbox("Maliyet sütunu", sayisal.columns)
+    kolon = "Bu Ay (TL)"
 
         df[kolon] = pd.to_numeric(df[kolon], errors="coerce")
         toplam_tutar = df[kolon].sum()

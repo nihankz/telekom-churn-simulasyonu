@@ -187,26 +187,52 @@ if sayfa == "👤 Bireysel":
 
     st.dataframe(uygun, use_container_width=True, hide_index=True)
 
-    en_iyi = uygun.iloc[0]
-    tasarruf_yil = max(0, (aylik - en_iyi["Aylık Ücret"]) * 12)
-    st.success(
-        f"""
-## 🏆 SubOpt Önerisi
+    en_iyi_paket = uygun.iloc[0]
+    tasarruf_yil = max(0, (aylik - en_iyi_paket["Aylık Ücret"]) * 12)
+    
+    st.divider()
 
-**{en_iyi['Operatör']}**
+    st.subheader("🧬 Kullanım DNA'n")
+    video = min(5, int(gb / 8) + 1)
+    oyun = 5 if gb > 40 else 4 if gb > 25 else 3 if gb > 15 else 2
+    is_kullanimi = 4 if aylik > 500 else 3
+    konusma = 5 if gercek < 10 else 3
+    seyahat = 4 if operator == "Vodafone" else 3
+    
+    st.markdown(f"""
+### 📊 Kullanım Profili
 
-**{en_iyi['Paket']}**
+🎬 **Video Kullanımı** {"⭐"*video}
 
-📦 {en_iyi['GB']} GB
+🎮 **Mobil Oyun** {"⭐"*oyun}
 
-📞 {en_iyi['Dakika']} DK
+💼 **İş Kullanımı** {"⭐"*is_kullanimi}
 
-💰 {en_iyi['Aylık Ücret']} TL / Ay
+📞 **Konuşma** {"⭐"*konusma}
 
-💸 Tahmini yıllık tasarruf:
+🌍 **Seyahat** {"⭐"*seyahat}
+""")
+
+    if gb >= 40:
+        profil = "🎬 Yoğun Veri Kullanıcısı"
+    elif gb >= 20:
+        profil = "📱 Dengeli Kullanıcı"
+    else:
+        profil = "☎️ Konuşma Ağırlıklı"
+
+    st.success(f"""
+## 🤖 AI Sonucu
+
+### {profil}
+
+SubOpt analizine göre kullanım alışkanlıkların incelendi.
+
+Senin kullanım profilin için **{en_iyi_paket['Paket']}**
+paketi en uygun seçenek olarak öne çıkıyor.
+
+💰 Tahmini yıllık tasarruf:
 **{tasarruf_yil:,.0f} TL**
-"""
-    )
+""")
 
     fig = go.Figure()
     fig.add_trace(go.Bar(x=["Mevcut", "Rakip"], y=[aylik, rakip]))

@@ -151,6 +151,44 @@ if sayfa == "👤 Bireysel":
       f" ({en_iyi['Yıllık Maliyet (TL)']:,.0f} TL / yıl)"
   )
 
+  st.divider()
+  st.subheader("🎯 SubOpt Paket Önerisi")
+  paketler = pd.DataFrame({
+      "Operatör": ["Turkcell", "Vodafone", "Türk Telekom"],
+      "Paket": ["Platinum 30 GB", "Red 25 GB", "Prime 30 GB"],
+      "GB": [30, 25, 30],
+      "Dakika": [3000, 2000, 3000],
+      "Aylık Ücret": [439, 379, 395],
+  })
+
+  uygun = paketler[(paketler["GB"] >= gb)].copy()
+  if uygun.empty:
+    uygun = paketler.copy()
+  uygun = uygun.sort_values("Aylık Ücret")
+
+  st.dataframe(uygun, use_container_width=True, hide_index=True)
+
+  en_iyi = uygun.iloc[0]
+  tasarruf_yil = max(0, (aylik - en_iyi["Aylık Ücret"]) * 12)
+  st.success(
+      f"""
+## 🏆 SubOpt Önerisi
+
+**{en_iyi['Operatör']}**
+
+**{en_iyi['Paket']}**
+
+📦 {en_iyi['GB']} GB
+
+📞 {en_iyi['Dakika']} DK
+
+💰 {en_iyi['Aylık Ücret']} TL / Ay
+
+💸 Tahmini yıllık tasarruf:
+**{tasarruf_yil:,.0f} TL**
+"""
+  )
+
   fig = go.Figure()
 
   fig.add_trace(go.Bar(x=["Mevcut", "Rakip"], y=[aylik, rakip]))

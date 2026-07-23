@@ -62,6 +62,15 @@ st.markdown(
         border-radius: 8px;
         margin-top: 10px;
     }
+    .upload-info-box {
+        background-color: #1f2937;
+        border-left: 4px solid #3b82f6;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: #D1D5DB;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -314,6 +323,18 @@ else:
   # --- 🏢 B2B KURUMSAL FİLO YÖNETİMİ MODÜLÜ ---
   st.subheader("🏢 Toplu Kurumsal Hat Analizi & Maliyet Optimizasyonu")
 
+  # Yükleme öncesi format zorunluluğu bildirimi
+  st.markdown(
+      """
+      <div class="upload-info-box">
+          <b>⚠️ ÖNEMLİ BELGE FORMATI UYARISI:</b> Yükleyeceğiniz belgenin geçerli kabul edilmesi ve sistem tarafından okunabilmesi için içerisinde mutlaka şu sütun başlıkları ve veriler yer almalıdır:<br>
+          <code>Fatura No</code> | <code>Hat No</code> | <code>Kullanıcı</code> | <code>Departman</code> | <code>Operatör</code> | <code>Toplam (TL)</code><br>
+          <i>Bu formata uymayan (CV, makale, rastgele metin vb.) belgeler sistem tarafından otomatik olarak reddedilecektir.</i>
+      </div>
+      """,
+      unsafe_allow_html=True,
+  )
+
   col_b2b1, col_b2b2 = st.columns([2, 1])
 
   dosya_gecerli = False
@@ -322,7 +343,7 @@ else:
 
   with col_b2b1:
     kurumsal_dosya = st.file_uploader(
-        "Kurumsal Fatura / Döküm Yüklenen Dosya (PDF, Excel, CSV, TXT)",
+        "Kurumsal Fatura / Döküm Dosyası Yükleyin (PDF, Excel, CSV, TXT)",
         type=["pdf", "xlsx", "csv", "txt"],
         key="kurumsal",
     )
@@ -331,7 +352,6 @@ else:
       dosya_adi = kurumsal_dosya.name.lower()
       tam_metin = ""
 
-      # Dosya İçeriğini Çekme
       try:
         if dosya_adi.endswith(".pdf"):
           import pypdf
@@ -358,31 +378,27 @@ else:
 
       metin_kontrol = tam_metin.lower()
 
-      # KATI DOĞRULAMA: Sadece Kesin Kurumsal Fatura / Döküm Şablonları Kabul Edilir!
-      # Belgede tablonun geçerli sayılması için aşağıdaki anahtar kelimelerden en az 3 tanesi MUTLAKA geçmelidir.
+      # KATI DOĞRULAMA: Zorunlu Sütun ve Yapı Kontrolü
       zorunlu_tablo_anahtarlari = [
           "fatura no",
           "hat no",
+          "kullanıcı",
           "departman",
-          "toplam (tl)",
-          "abone no",
           "operatör",
+          "toplam (tl)",
       ]
       bulunan_anahtar_sayisi = sum(
           1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in metin_kontrol
       )
-
-      # Ek olarak dosya içinde en az bir adet kurumsal hat deseni (05xx...) olmalı
       gsm_eslesmeleri = re.findall(r"05\d{9}", metin_kontrol)
 
-      # Eğer gerekli tablo başlıkları veya hat kalıpları eksikse (örn: CV, makale, rastgele metin), direkt reddet!
+      # En az 3 zorunlu başlık ve hat numarası kalıbı bulunmak zorunda
       if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(
-            "❌ **GEÇERSİZ BELGE YAPISI:** Yüklenen dosya resmi bir kurumsal"
-            " fatura veya hat döküm tablosu içermiyor. (Beklenen:"
-            " 'Fatura No', 'Hat No', 'Departman' gibi kurumsal sütun başlıkları"
-            " ve hat listesi)."
+            "❌ **GEÇERSİZ BELGE YAPISI:** Yüklenen dosya istenen formatı"
+            " içermiyor. Belge içerisinde 'Fatura No', 'Hat No', 'Kullanıcı',"
+            " 'Departman', 'Operatör' ve 'Toplam (TL)' alanları bulunmalıdır."
         )
       else:
         dosya_gecerli = True
@@ -410,7 +426,8 @@ else:
     else:
       dosya_gecerli = False
       st.info(
-          "💡 Analiz yapabilmek için lütfen şirket hat döküm dosyanızı yükleyin."
+          "💡 Analiz yapabilmek için lütfen yukarıda belirtilen formatta şirket"
+          " hat döküm dosyanızı yükleyin."
       )
 
   with col_b2b2:
@@ -437,8 +454,8 @@ else:
 
   if not dosya_gecerli:
     st.warning(
-        "⚠️ Geçerli bir kurumsal döküm yüklenmeden rapor ve hesaplamalar"
-        " oluşturulamaz."
+        "⚠️ Doğru formatta bir kurumsal döküm yüklenmeden rapor ve"
+        " hesaplamalar oluşturulamaz."
     )
   else:
     atıl_hat_orani = 0.28

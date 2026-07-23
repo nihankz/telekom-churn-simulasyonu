@@ -345,7 +345,6 @@ with col_right:
     )
 
         st.divider()
-
         kategorik = list(
             df.select_dtypes(include="object").columns
         )

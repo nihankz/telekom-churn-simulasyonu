@@ -182,7 +182,7 @@ else:
       toplam_tutar = df[kolon].sum()
       ortalama = df[kolon].mean()
 
-    # Risk skoru hesaplaması
+    # Risk skoru hesaplaması ve AI Açıklama/Öneri Motoru
     if not sayisal.empty and kolon:
       df["Risk Skoru"] = np.where(
           df[kolon] > ortalama * 1.5,
@@ -190,22 +190,36 @@ else:
           np.where(df[kolon] > ortalama, "🟡 Orta", "🟢 Düşük"),
       )
 
-      # AI Öneri Fonksiyonu
-      def ai_oneri_uret(row, ort):
-        if row[kolon] > ort * 1.5:
-          return "🔴 Paket gözden geçirilsin"
-        elif row[kolon] > ort:
-          return "🟡 Operatörden yeni teklif alın"
-        else:
-          return "🟢 Mevcut paket uygun"
 
-      df["AI Önerisi"] = df.apply(lambda row: ai_oneri_uret(row, ortalama), axis=1)
+      def ai_detayli_aciklama(row, ort):
+        maliyet = row[kolon]
+        if maliyet > ort * 1.5:
+          return (
+              "🔴 Paket gözden geçirilsin.<br><b>Neden?</b><br>• Şirket"
+              f" ortalamasının çok üzerinde maliyet.<br>• Tahmini yıllık"
+              f" kayıp: {(maliyet - ort)*12:,.0f} TL"
+          )
+        elif maliyet > ort:
+          return (
+              "🟡 Operatörden yeni teklif alın.<br><b>Neden?</b><br>• Fatura"
+              " ortalamanın üzerinde."
+          )
+        else:
+          return (
+              "🟢 Mevcut paket uygun.<br><b>Neden?</b><br>• Maliyet optimum"
+              " seviyede."
+          )
+
+
+      df["AI Önerisi"] = df.apply(
+          lambda row: ai_detayli_aciklama(row, ortalama), axis=1
+      )
 
       limit = ortalama * 1.5
       riskli = df[df[kolon] > limit]
       potansiyel = riskli[kolon].sum() * 0.20
 
-      # Dashboard üstüne eklenen uyarı kutusu
+      # Tasarruf Alarmı (Dashboard Üstü)
       st.error(
           f"""
 # 🚨 Tasarruf Alarmı
@@ -221,6 +235,41 @@ Bu hatlar optimize edilirse
 yıllık tasarruf sağlanabilir.
 """
       )
+
+    # Finansal Sağlık Skoru
+    yuksek_risk_orani = (
+        len(df[df[kolon] > ortalama * 1.5]) / toplam_hat
+        if toplam_hat > 0
+        else 0
+    )
+    saglik_skoru = max(
+        0, min(100, int(100 - (yuksek_risk_orani * 100 * 1.2)))
+    )
+
+    if saglik_skoru >= 80:
+      skor_renk = "🟢 İyi"
+    elif saglik_skoru >= 50:
+      skor_renk = "🟡 Orta"
+    else:
+      skor_renk = "🔴 Kritik"
+
+    st.markdown(
+        f"""
+        <div class="kpi">
+            <h3>📊 Telekom Finansal Sağlık Skoru</h3>
+            <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
+            <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
+            <hr style="border-color: #374151;">
+            <p style="font-size: 14px; color: #9ca3af; margin-bottom: 0;">
+                Paket Verimliliği: %{max(0, 100 - int(yuksek_risk_orani*100))} | 
+                Maliyet Verimliliği: %{min(100, int(ortalama*100/toplam_tutar*toplam_hat)) if toplam_tutar > 0 else 0} | 
+                Taahhüt Riski: Düşük
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.divider()
 
     k1, k2, k3 = st.columns(3)
 
@@ -366,6 +415,78 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
               ]
           ].head(10),
           use_container_width=True,
+      )
+
+      # AI Copilot Modülü
+      st.divider()
+      st.subheader("🤖 SubOpt AI Copilot")
+      st.caption(
+          "Veri setiniz hakkında yapay zekaya soru sorun (Örn: 'Hangi departman"
+          " en çok harcıyor?')"
+      )
+
+      if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+      for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+          st.markdown(message["content"], unsafe_allow_html=True)
+
+      if prompt := st.chat_input("Bir soru sorun..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+          st.markdown(prompt)
+
+        cevap = "Bu konuda detaylı analiz hazırlanıyor."
+        prompt_lower = prompt.lower()
+        if "departman" in prompt_lower:
+          en_pahali_dep = df.groupby("Departman")[kolon].sum().idxmax()
+          cevap = (
+              f"En yüksek harcamaya sahip departman **{en_pahali_dep}** olarak"
+              " görünmektedir."
+          )
+        elif "fazla" in prompt_lower or "maliyet" in prompt_lower:
+          cevap = (
+              f"Toplam aylık telekom gideriniz **{toplam_tutar:,.2f} TL** olup,"
+              f" ortalamanın üzerindeki hat sayısı **{len(riskli)}** adettir."
+          )
+        elif "tasarruf" in prompt_lower:
+          cevap = (
+              f"Öngörülen yıllık potansiyel tasarruf tutarınız"
+              f" **{potansiyel*12:,.0f} TL**'dir."
+          )
+
+        with st.chat_message("assistant"):
+          st.markdown(cevap)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": cevap}
+        )
+
+      # PDF / Metin Raporu İndirme Butonu
+      st.divider()
+      st.subheader("📄 Yönetici Raporu Dışa Aktar")
+
+      rapor_metni = f"""
+SUBOPT KURUMSAL TELEKOM OPTİMİZASYON RAPORU
+--------------------------------------------------
+Rapor Tarihi: 2026
+Aktif Toplam Hat: {toplam_hat}
+Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL
+Hat Başına Ortalama Maliyet: {ortalama:,.2f} TL
+Finansal Sağlık Skoru: {saglik_skoru} / 100 ({skor_renk})
+Tespit Edilen Riskli Hat Sayısı: {len(riskli)}
+Tahmini Yıllık Tasarruf Potansiyeli: {potansiyel*12:,.0f} TL
+--------------------------------------------------
+ÖNERİLER:
+1. Yüksek maliyetli hatlar için operatör teklifleri acilen yenilenmelidir.
+2. Departman bazlı bütçe limitleri aşım gösteren birimlerde daraltılmalıdır.
+"""
+
+      st.download_button(
+          label="📄 Yönetici Raporunu İndir (.txt / Rapor)",
+          data=rapor_metni,
+          file_name="SubOpt_Yonetici_Raporu.txt",
+          mime="text/plain",
       )
 
   else:

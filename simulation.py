@@ -302,7 +302,7 @@ else:
         else:
             df = pd.read_csv(dosya)
 
-        st.session_state.kurumsal_df = df
+        st.session_state.kurumsal_df = dosya
 
     elif st.session_state.kurumsal_df is not None:
         df = st.session_state.kurumsal_df
@@ -486,57 +486,251 @@ Eksik sütunlar:{", ".join(sorted(missing))}
     en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0] if kolon else None
 
     # --------------------------------------------------
-    # 📊 DASHBOARD
+    # 📊 SUBOPT PREMIUM DASHBOARD
     # --------------------------------------------------
     if sayfa == "📊 Dashboard":
+
         st.divider()
 
         st.markdown(
             f"""
-            <div class="kpi">
-                <h3>📊 Telekom Finansal Sağlık Skoru</h3>
-                <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
-                <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
-                <hr style="border-color: #374151;">
-                <p style="font-size: 14px; color: #9ca3af; margin-bottom: 0;">
-                    Paket Verimliliği: %{max(0, 100 - int(yuksek_risk_orani*100))} | 
-                    Maliyet Verimliliği: %{min(100, int(ortalama*100/toplam_tutar*toplam_hat)) if toplam_tutar > 0 else 0} | 
-                    Taahhüt Riski: Düşük
-                </p>
+            <div style="
+                background:linear-gradient(135deg,#020617,#1e3a8a);
+                padding:35px;
+                border-radius:25px;
+                border:1px solid #334155;
+            ">
+
+            <h2 style="color:white;margin:0;">
+            📊 SubOpt Finansal Kontrol Merkezi
+            </h2>
+
+            <p style="
+            color:#cbd5e1;
+            font-size:16px;
+            ">
+            Şirketinizin telekom maliyetlerini,
+            risklerini ve tasarruf fırsatlarını yönetin.
+            </p>
+
+
+            <h1 style="
+            color:white;
+            font-size:55px;
+            margin:15px 0;
+            ">
+            {saglik_skoru}/100
+            </h1>
+
+
+            <p style="
+            color:#93c5fd;
+            font-size:20px;
+            font-weight:bold;
+            ">
+            Telekom Sağlık Skoru
+            </p>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
+
+
         st.divider()
 
-        col_left, col_right = st.columns(2)
 
-        with col_left:
+        # KPI KARTLARI
+
+        k1,k2,k3 = st.columns(3)
+
+
+        with k1:
+            st.markdown(
+            f"""
+            <div style="
+            background:#052e16;
+            padding:25px;
+            border-radius:20px;
+            border:1px solid #16a34a;
+            ">
+
+            <h3 style="color:#86efac;">
+            💰 Tasarruf Fırsatı
+            </h3>
+
+            <h1 style="color:white;">
+            {potansiyel*12:,.0f} TL
+            </h1>
+
+            <p style="color:#bbf7d0;">
+            Yıllık optimize edilebilir maliyet
+            </p>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+            )
+
+
+        with k2:
+            kritik = len(riskli) if 'riskli' in locals() else 0
+
+            st.markdown(
+            f"""
+            <div style="
+            background:#451a03;
+            padding:25px;
+            border-radius:20px;
+            border:1px solid #f97316;
+            ">
+
+            <h3 style="color:#fdba74;">
+            ⚠️ Risk Durumu
+            </h3>
+
+            <h1 style="color:white;">
+            {kritik}
+            </h1>
+
+            <p style="color:#fed7aa;">
+            Kritik maliyetli hat
+            </p>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+            )
+
+
+        with k3:
+
+            st.markdown(
+            f"""
+            <div style="
+            background:#111827;
+            padding:25px;
+            border-radius:20px;
+            border:1px solid #334155;
+            ">
+
+            <h3 style="color:#94a3b8;">
+            📱 Hat Portföyü
+            </h3>
+
+            <h1 style="color:white;">
+            {toplam_hat}
+            </h1>
+
+            <p style="color:#64748b;">
+            Aktif kurumsal hat
+            </p>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+            )
+
+
+        st.divider()
+
+
+        sol,sag = st.columns(2)
+
+
+        with sol:
+
+            st.subheader("📡 Operatör Dağılımı")
+
             if "Operatör" in df.columns:
-                operator_df = df["Operatör"].value_counts().reset_index()
-                operator_df.columns = ["Operatör", "Hat"]
 
-                fig_operator = px.pie(
+                operator_df = (
+                    df["Operatör"]
+                    .value_counts()
+                    .reset_index()
+                )
+
+                operator_df.columns=[
+                    "Operatör",
+                    "Hat"
+                ]
+
+
+                fig = px.pie(
                     operator_df,
                     values="Hat",
                     names="Operatör",
-                    hole=0.55,
-                    title="📡 Operatör Dağılımı",
+                    hole=0.6
                 )
-                st.plotly_chart(fig_operator, use_container_width=True)
 
-        with col_right:
-            if "Departman" in df.columns and kolon:
-                departman = df.groupby("Departman")[kolon].sum().reset_index()
+                fig.update_layout(
+                    template="plotly_dark"
+                )
 
-                fig_departman = px.bar(
-                    departman,
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+
+        with sag:
+
+            st.subheader("🏢 En Yüksek Maliyetli Departmanlar")
+
+            if "Departman" in df.columns:
+
+                dep = (
+                    df.groupby("Departman")[kolon]
+                    .sum()
+                    .reset_index()
+                    .sort_values(
+                        kolon,
+                        ascending=False
+                    )
+                )
+
+
+                fig = px.bar(
+                    dep,
                     x="Departman",
-                    y=kolon,
-                    text_auto=".2f",
-                    title="🏢 Departman Bazlı Maliyet",
+                    y=kolon
                 )
-                st.plotly_chart(fig_departman, use_container_width=True)
+
+                fig.update_layout(
+                    template="plotly_dark"
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+
+        st.divider()
+
+
+        st.subheader("🤖 SubOpt Önerisi")
+
+
+        if kritik > 0:
+
+            st.warning(
+            f"""
+            SubOpt analizi sonucunda **{kritik} adet hat**
+            şirket ortalamasının üzerinde maliyet oluşturuyor.
+
+            Önerilen aksiyon:
+            Operatör pazarlığı + paket optimizasyonu
+            """
+            )
+
+        else:
+
+            st.success(
+            """
+            Telekom portföyünüz dengeli görünüyor.
+            """
+            )
 
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ
@@ -555,7 +749,7 @@ SubOpt analizine göre şirketinizde
 
 Bu hatlar optimize edilirse
 
-## 💰 Yaklaşık {potansiyel*12:,.0f} TL if 'potansiyel' in locals() else 0
+## 💰 Yaklaşık {potansiyel*12:,.0f} TL
 
 yıllık tasarruf sağlanabilir.
 """

@@ -254,13 +254,33 @@ else:
 
         if not sayisal.empty:
 
-            kolon = st.selectbox(
-                "Toplam maliyet sütunu",
-                sayisal.columns
-            )
+            # Toplam (TL) sütununu otomatik bul
+if "Toplam (TL)" in df.columns:
+    kolon = "Toplam (TL)"
+elif "Toplam" in df.columns:
+    kolon = "Toplam"
+else:
+    kolon = st.selectbox(
+        "Maliyet Sütunu",
+        sayisal.columns
+    )
 
-            toplam_tutar = df[kolon].sum()
-            ortalama = df[kolon].mean()
+# Sayıya çevir
+df[kolon] = (
+    df[kolon]
+    .astype(str)
+    .str.replace("TL", "", regex=False)
+    .str.replace(".", "", regex=False)
+    .str.replace(",", ".", regex=False)
+)
+
+df[kolon] = pd.to_numeric(
+    df[kolon],
+    errors="coerce"
+)
+
+toplam_tutar = df[kolon].sum()
+ortalama = df[kolon].mean()
 
         k1, k2, k3 = st.columns(3)
 

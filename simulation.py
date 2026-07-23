@@ -342,8 +342,7 @@ kumulatif_rakip = [
         + sum([rakip_fiyat / ((1 + r) ** i) for i in range(1, t + 1)])
         for t in aylar
     ]
-
-    fig_line = go.Figure()
+fig_line = go.Figure()
     fig_line.add_trace(
         go.Scatter(
             x=aylar,

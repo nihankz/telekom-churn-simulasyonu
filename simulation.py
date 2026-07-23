@@ -452,51 +452,6 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           use_container_width=True,
       )
 
-      # AI Copilot Modülü
-      st.divider()
-      st.subheader("🤖 SubOpt AI Copilot")
-      st.caption(
-          "Veri setiniz hakkında yapay zekaya soru sorun (Örn: 'Hangi departman"
-          " en çok harcıyor?')"
-      )
-
-      if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-      for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-          st.markdown(message["content"], unsafe_allow_html=True)
-
-      if prompt := st.chat_input("Bir soru sorun..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-          st.markdown(prompt)
-
-        cevap = "Bu konuda detaylı analiz hazırlanıyor."
-        prompt_lower = prompt.lower()
-        if "departman" in prompt_lower:
-          en_pahali_dep = df.groupby("Departman")[kolon].sum().idxmax()
-          cevap = (
-              f"En yüksek harcamaya sahip departman **{en_pahali_dep}** olarak"
-              " görünmektedir."
-          )
-        elif "fazla" in prompt_lower or "maliyet" in prompt_lower:
-          cevap = (
-              f"Toplam aylık telekom gideriniz **{toplam_tutar:,.2f} TL** olup,"
-              f" ortalamanın üzerindeki hat sayısı **{len(riskli)}** adettir."
-          )
-        elif "tasarruf" in prompt_lower:
-          cevap = (
-              f"Öngörülen yıllık potansiyel tasarruf tutarınız"
-              f" **{potansiyel*12:,.0f} TL**'dir."
-          )
-
-        with st.chat_message("assistant"):
-          st.markdown(cevap)
-        st.session_state.messages.append(
-            {"role": "assistant", "content": cevap}
-        )
-
       # PDF Raporu İndirme Butonu
       st.divider()
       st.subheader("📄 Yönetici Raporu Dışa Aktar")

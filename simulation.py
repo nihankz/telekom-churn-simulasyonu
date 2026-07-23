@@ -175,21 +175,7 @@ else:
         kolon = "Toplam"
       else:
         kolon = st.selectbox("Maliyet Sütunu", sayisal.columns)
-          st.subheader("💰 En Pahalı 10 Kayıt")
 
-st.dataframe(
-    df.sort_values(
-        kolon,
-        ascending=False
-    ).head(10),
-    use_container_width=True
-)
-
-tasarruf = toplam_tutar * 0.15
-
-st.success(
-    f"💸 Tahmini yıllık tasarruf: {tasarruf:,.0f} TL"
-)
       # Sayıya çevir
       df[kolon] = pd.to_numeric(df[kolon], errors="coerce")
 

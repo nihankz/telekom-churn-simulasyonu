@@ -191,14 +191,14 @@ if sayfa == "👤 Bireysel":
     tasarruf_yil = max(0, (aylik - en_iyi_paket["Aylık Ücret"]) * 12)
     
     st.divider()
-
     st.subheader("🧬 Kullanım DNA'n")
+
     video = min(100, gb * 3)
     oyun = min(100, gb * 2)
     is_kullanimi = min(100, int(aylik / 6))
     konusma = max(20, 100 - gb * 2)
     seyahat = 80 if operator == "Vodafone" else 60
-    
+
     dna = pd.DataFrame({
         "Kategori": [
             "🎬 Video",
@@ -216,22 +216,28 @@ if sayfa == "👤 Bireysel":
         ]
     })
 
-    fig = px.bar(
-        dna,
-        x="Skor",
-        y="Kategori",
-        orientation="h",
-        text="Skor",
-        color="Skor",
-        color_continuous_scale="Blues",
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatterpolar(
+            r=dna["Skor"],
+            theta=dna["Kategori"],
+            fill="toself",
+            name="Profil",
+            line=dict(color="#3b82f6", width=3),
+            fillcolor="rgba(59,130,246,0.35)"
+        )
     )
     fig.update_layout(
         template="plotly_dark",
-        height=320,
-        coloraxis_showscale=False,
-        margin=dict(l=10, r=10, t=20, b=10),
-        xaxis_title="",
-        yaxis_title="",
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0,100]
+            )
+        ),
+        showlegend=False,
+        height=450,
+        margin=dict(l=20,r=20,t=20,b=20)
     )
     st.plotly_chart(fig, use_container_width=True)
 

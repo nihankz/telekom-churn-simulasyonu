@@ -7,7 +7,7 @@ import streamlit as st
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Telekom Fatura & Kurumsal Filo Optimizasyon Portalı",
+    page_title="Kurumsal Fatura & Filo Optimizasyon Portalı",
     page_icon="🏢",
     layout="wide",
 )
@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Yüklenen dosyanın geçerli bir kurumsal fatura/hat dökümü olup olmadığı otomatik taranır. CV veya alakasız belgeler engellenir; dosya onaylandığında hat sayısını dilediğiniz gibi kontrol edebilirsiniz.
+            <b>📁 BİLGİ:</b> Yalnızca kurumsal fatura formatındaki dökümler (Fatura No, Hat No, Tutar vb.) kabul edilir. CV veya alakasız evraklar otomatik olarak reddedilir.
         </div>
         """,
         unsafe_allow_html=True,
@@ -335,6 +335,7 @@ else:
     col_b2b1, col_b2b2 = st.columns([2, 1])
 
     dosya_gecerli = False
+    otomatik_tespit_hat_sayisi = 10
     hesaplanan_ortalama_tutar = 0.0
 
     with col_b2b1:
@@ -375,112 +376,80 @@ else:
             with st.expander("🔍 Dosyadan Okunan Ham Metin"):
                 st.code(tam_metin)
 
-            # --- 🛡️ AKILLI BELGE DOĞRULAMA (CV / ALAKASIZ DOSYA FİLTRESİ) ---
+            # --- 🛡️ KESİN DOĞRULAMA FİLTRESİ ---
             metin_kucuk = tam_metin.lower()
 
-            # Yasaklı kelimeler (CV veya alakasız doküman göstergeleri)
-            yasakli_terimler = [
-                "cv",
-                "özgeçmiş",
-                "egitim",
-                "universite",
-                "staj",
-                "experince",
-                "skills",
-            ]
-            is_cv_veya_alakasiz = any(
-                term in dosya_adi for term in ["cv", "ozgecmis", "resume"]
-            ) or (
-                sum(1 for t in ["egitim", "staj", "mezun", "okul"] if t in metin_kucuk)
-                >= 2
-            )
+            # 1. Kesinlikle yasaklı CV / Özgeçmiş kelimeleri
+            yasakli_cv_kelimeleri = ["cv", "özgeçmiş", "resume", "staj", "eğitim durumu", "mezuniyet"]
+            is_cv = any(w in dosya_adi for w in ["cv", "ozgecmis", "resume"]) or any(w in metin_kucuk for w in ["özgeçmiş", "mezuniyet", "eğitim durumu"])
 
-            # Fatura / hat dökümüne ait olması gereken zorunlu anahtar kelimeler
-            fatura_terimleri = [
-                "fatura",
-                "tutar",
-                "tl",
-                "abone",
-                "hat",
-                "kdv",
-                "kullanim",
-                "turkcell",
-                "vodafone",
-                "telekom",
-            ]
-            gecerli_terim_sayisi = sum(
-                1 for t in fatura_terimleri if t in metin_kucuk
-            )
+            # 2. Fatura / Döküm olduğunu kanıtlayan zorunlu başlıklar (Örnek tablonuzdaki anahtar kelimeler)
+            fatura_imzalari = ["fatura no", "hat no", "toplam (tl)", "departman", "operatör"]
+            eslesen_imza_sayisi = sum(1 for imza in fatura_imzalari if imza in metin_kucuk)
 
-            if is_cv_veya_alakasiz or gecerli_terim_sayisi < 2:
+            if is_cv or eslesen_imza_sayisi < 2:
                 dosya_gecerli = False
                 st.error(
-                    "❌ **GEÇERSİZ BELGE TÜRÜ:** Yüklenen dosya (örn. CV veya"
-                    " alakasız evrak) bir kurumsal hat dökümü veya fatura"
-                    " içermiyor! Lütfen geçerli bir hat dökümü yükleyin."
+                    "❌ **GEÇERSİZ DOSYA:** Yüklenen belge kurumsal fatura formatına (Fatura No, Hat No, Tutar vb.) uymuyor! Lütfen doğru formatta bir döküm yükleyin."
                 )
             else:
-                # Para değerlerini bulup ortalama maliyeti hesapla
+                # Hat sayısını faturadaki satırlardan / telefon numaralarından (05 ile başlayan 11 haneli hatlar) dinamik bul
+                bulunan_hatlar = re.findall(r"05\d{9}", tam_metin)
+                if bulunan_hatlar:
+                    otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
+                else:
+                    # Alternatif olarak Fatura No sayısını say
+                    fatura_sayilari = re.findall(r"F\d{8,10}", tam_metin)
+                    if fatura_sayilari:
+                        otomatik_tespit_hat_sayisi = len(set(fatura_sayilari))
+
+                # Tutar ortalamasını hesapla
                 para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
                 if para_degerleri:
                     temiz_sayilar = [
-                        (
-                            float(p.replace(".", "").replace(",", "."))
-                            if "." in p and "," in p
-                            else float(p.replace(",", "."))
-                        )
+                        float(p.replace(".", "").replace(",", "."))
+                        if "." in p and "," in p
+                        else float(p.replace(",", "."))
                         for p in para_degerleri
                         if 10 < float(p.replace(",", ".")) < 50000
                     ]
-                    if temiz_sayilar:
-                        hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
-                    else:
-                        hesaplanan_ortalama_tutar = 842.0
+                    hesaplanan_ortalama_tutar = (
+                        float(np.mean(temiz_sayilar)) if temiz_sayilar else 1500.0
+                    )
                 else:
-                    hesaplanan_ortalama_tutar = 842.0
+                    hesaplanan_ortalama_tutar = 1500.0
 
                 dosya_gecerli = True
                 st.success(
-                    f"✅ Kurumsal Fatura / Hat Dökümü ({kurumsal_dosya.name})"
-                    " başarıyla doğrulandı ve analiz edildi!"
+                    f"✅ Kurumsal Fatura / Hat Dökümü başarıyla doğrulandı! Tespit edilen hat sayısı: **{otomatik_tespit_hat_sayisi}**"
                 )
         else:
             dosya_gecerli = False
-            st.info(
-                "💡 Analiz yapabilmek için lütfen şirket hat döküm veya fatura"
-                " dosyanızı yükleyin."
-            )
+            st.info("💡 Lütfen örnek formatınıza uygun kurumsal fatura dökümünü yükleyin.")
 
     with col_b2b2:
         toplam_hat = st.number_input(
-            "Şirket Toplu Hat Sayısı",
+            "Şirket Toplu Hat Sayısı (Otomatik Güncellenir)",
             min_value=1,
             max_value=100000,
-            value=10,
+            value=otomatik_tespit_hat_sayisi if dosya_gecerli else 10,
             step=1,
             format="%d",
             disabled=not dosya_gecerli,
-            help=(
-                "Geçerli döküm yüklendikten sonra test etmek istediğiniz hat"
-                " sayısını (örn. 10, 1000 vb.) buradan girebilirsiniz."
-            ),
         )
 
         ortalama_hat_maliyeti = st.number_input(
             "Hat Başı Ortalama Fatura (TL)",
             min_value=0,
             max_value=10000,
-            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 842,
+            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 1500,
             step=10,
             format="%d",
             disabled=not dosya_gecerli,
         )
 
     if not dosya_gecerli:
-        st.warning(
-            "⚠️ Sistemde işlem yapabilmek için lütfen geçerli bir kurumsal hat"
-            " dökümü yükleyin."
-        )
+        st.warning("⚠️ Analiz yapabilmek için yukarıya geçerli bir kurumsal fatura dökümü yüklemeniz gerekmektedir.")
     else:
         atıl_hat_orani = 0.28
         atıl_hat_sayisi = int(round(float(toplam_hat) * atıl_hat_orani))

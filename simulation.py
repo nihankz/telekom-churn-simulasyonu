@@ -275,7 +275,6 @@ npv_rakip = cayma_bedeli + sum(
 [rakip_fiyat / ((1 + r) ** t) for t in range(1, taahhut_ay + 1)]
     )
 net_npv_kazanc = npv_mevcut - npv_rakip
-
  gb_maliyet_mevcut = yenileme_fiyat / gb_kullanim if gb_kullanim > 0 else 0
  gb_maliyet_rakip = (
         rakip_fiyat / net_satin_alinmasi_gereken_gb

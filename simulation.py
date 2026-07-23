@@ -265,7 +265,7 @@ firsat_maliyeti = st.slider(
         2.0,
         step=0.5
     )
-    net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
+  net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
     r = firsat_maliyeti / 100
 
     npv_mevcut = sum(

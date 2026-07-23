@@ -353,11 +353,12 @@ else:
 
       try:
         if dosya_adi.endswith(".pdf"):
-          import pypdf
+          import fitz
 
-          reader = pypdf.PdfReader(kurumsal_dosya)
-          for page in reader.pages:
-            extracted = page.extract_text()
+pdf = fitz.open(stream=kurumsal_dosya.read(), filetype="pdf")
+
+for page in pdf:
+    tam_metin += page.get_text("text")
             if extracted:
               tam_metin += extracted + "\n"
           if not tam_metin.strip():
@@ -393,6 +394,8 @@ else:
           .replace("ç", "c")
           .replace("Ç", "c")
       )
+        with st.expander("🔍 PDF'den Okunan Ham Metin"):
+    st.code(tam_metin)
 
       # --- GÜNCELLENMİŞ TABLO ANAHTARLARI ---
       zorunlu_tablo_anahtarlari = [
@@ -408,11 +411,17 @@ else:
           1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in temizlenmis_metin
       )
 
-      gsm_eslesmeleri = re.findall(r"0\s*5\s*\d[\s*\d]{9}", metin_kontrol)
+      telefonlar = re.findall(r"\d+", temizlenmis_metin)
+
+gsm_eslesmeleri = []
+
+for t in telefonlar:
+    if len(t) == 11 and t.startswith("05"):
+        gsm_eslesmeleri.append(t)
       if not gsm_eslesmeleri:
         gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
 
-      if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
+      if bulunan_anahtar_sayisi < 5 or len(gsm_eslesmeleri) == 0:
         dosya_gecerli = False
         st.error(
             "❌ **GEÇERSİZ BELGE YAPISI:** Yüklenen dosya istenen formatı"

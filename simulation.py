@@ -369,7 +369,6 @@ fig_line.update_layout(
         yaxis_title="Toplam Maliyet (TL)",
     )
 st.plotly_chart(fig_line, use_container_width=True)
-
 else:
     # ==========================
 # B2B KURUMSAL ANALİZ

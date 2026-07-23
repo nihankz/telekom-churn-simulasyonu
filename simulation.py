@@ -48,12 +48,12 @@ st.markdown("""
 }
 
 </style>
-""",unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 st.title("📱 SubOpt")
 st.caption("Bireysel ve Kurumsal Telekom Optimizasyon Platformu")
 
-sayfa=st.sidebar.radio(
+sayfa = st.sidebar.radio(
     "Modül",
     [
         "👤 Bireysel",
@@ -65,14 +65,14 @@ sayfa=st.sidebar.radio(
 # BİREYSEL
 # ==========================================================
 
-if sayfa=="👤 Bireysel":
+if sayfa == "👤 Bireysel":
 
     st.header("👤 Bireysel Hat Analizi")
 
-    c1,c2,c3,c4=st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        operator=st.selectbox(
+        operator = st.selectbox(
             "Operatör",
             [
                 "Turkcell",
@@ -82,7 +82,7 @@ if sayfa=="👤 Bireysel":
         )
 
     with c2:
-        aylik=st.number_input(
+        aylik = st.number_input(
             "Aylık Fatura",
             50,
             5000,
@@ -90,7 +90,7 @@ if sayfa=="👤 Bireysel":
         )
 
     with c3:
-        rakip=st.number_input(
+        rakip = st.number_input(
             "Rakip Teklifi",
             50,
             5000,
@@ -98,7 +98,7 @@ if sayfa=="👤 Bireysel":
         )
 
     with c4:
-        cayma=st.number_input(
+        cayma = st.number_input(
             "Cayma Bedeli",
             0,
             10000,
@@ -107,18 +107,18 @@ if sayfa=="👤 Bireysel":
 
     st.divider()
 
-    sol,sag=st.columns(2)
+    sol, sag = st.columns(2)
 
     with sol:
 
-        gb=st.slider(
+        gb = st.slider(
             "Aylık Kullanım (GB)",
             1,
             100,
             25
         )
 
-        hediye=st.slider(
+        hediye = st.slider(
             "Hediye GB",
             0,
             20,
@@ -127,12 +127,12 @@ if sayfa=="👤 Bireysel":
 
     with sag:
 
-        ay=st.selectbox(
+        ay = st.selectbox(
             "Taahhüt",
-            [12,24]
+            [12, 24]
         )
 
-        iskonto=st.slider(
+        iskonto = st.slider(
             "İskonto (%)",
             0.0,
             10.0,
@@ -140,30 +140,30 @@ if sayfa=="👤 Bireysel":
             0.5
         )
 
-    gercek=max(1,gb-hediye)
+    gercek = max(1, gb - hediye)
 
-    r=iskonto/100
+    r = iskonto / 100
 
-    npv_mevcut=sum(
-        aylik/((1+r)**i)
-        for i in range(1,ay+1)
+    npv_mevcut = sum(
+        aylik / ((1 + r) ** i)
+        for i in range(1, ay + 1)
     )
 
-    npv_rakip=cayma+sum(
-        rakip/((1+r)**i)
-        for i in range(1,ay+1)
+    npv_rakip = cayma + sum(
+        rakip / ((1 + r) ** i)
+        for i in range(1, ay + 1)
     )
 
-    kazanc=npv_mevcut-npv_rakip
+    kazanc = npv_mevcut - npv_rakip
 
-    tasarruf=max(
+    tasarruf = max(
         0,
-        (aylik-rakip)*12-cayma
+        (aylik - rakip) * 12 - cayma
     )
 
     st.divider()
 
-    k1,k2,k3,k4=st.columns(4)
+    k1, k2, k3, k4 = st.columns(4)
 
     k1.metric(
         "Mevcut",
@@ -185,7 +185,7 @@ if sayfa=="👤 Bireysel":
         f"{tasarruf:,.0f} TL"
     )
 
-    if tasarruf>0:
+    if tasarruf > 0:
 
         st.success(
             f"💰 Operatör değiştirmeniz halinde yaklaşık {tasarruf:,.0f} TL tasarruf edebilirsiniz."
@@ -197,12 +197,12 @@ if sayfa=="👤 Bireysel":
             "Mevcut paket ekonomik görünüyor."
         )
 
-    fig=go.Figure()
+    fig = go.Figure()
 
     fig.add_trace(
         go.Bar(
-            x=["Mevcut","Rakip"],
-            y=[aylik,rakip]
+            x=["Mevcut", "Rakip"],
+            y=[aylik, rakip]
         )
     )
 
@@ -215,7 +215,8 @@ if sayfa=="👤 Bireysel":
         fig,
         use_container_width=True
     )
-    # ==========================================================
+
+# ==========================================================
 # KURUMSAL
 # ==========================================================
 
@@ -251,36 +252,37 @@ else:
 
         toplam_tutar = 0
         ortalama = 0
+        kolon = None
 
         if not sayisal.empty:
 
             # Toplam (TL) sütununu otomatik bul
-                if "Toplam (TL)" in df.columns:
+            if "Toplam (TL)" in df.columns:
                 kolon = "Toplam (TL)"
-                  elif "Toplam" in df.columns:
-                  kolon = "Toplam"
-                    else:
-                    kolon = st.selectbox(
+            elif "Toplam" in df.columns:
+                kolon = "Toplam"
+            else:
+                kolon = st.selectbox(
                     "Maliyet Sütunu",
                     sayisal.columns
-    )
+                )
 
-# Sayıya çevir
-df[kolon] = (
-    df[kolon]
-    .astype(str)
-    .str.replace("TL", "", regex=False)
-    .str.replace(".", "", regex=False)
-    .str.replace(",", ".", regex=False)
-)
+            # Sayıya çevir
+            df[kolon] = (
+                df[kolon]
+                .astype(str)
+                .str.replace("TL", "", regex=False)
+                .str.replace(".", "", regex=False)
+                .str.replace(",", ".", regex=False)
+            )
 
-df[kolon] = pd.to_numeric(
-    df[kolon],
-    errors="coerce"
-)
+            df[kolon] = pd.to_numeric(
+                df[kolon],
+                errors="coerce"
+            )
 
-toplam_tutar = df[kolon].sum()
-ortalama = df[kolon].mean()
+            toplam_tutar = df[kolon].sum()
+            ortalama = df[kolon].mean()
 
         k1, k2, k3 = st.columns(3)
 
@@ -334,7 +336,7 @@ ortalama = df[kolon].mean()
                 use_container_width=True
             )
 
-        if not sayisal.empty:
+        if not sayisal.empty and kolon:
 
             fig2 = px.histogram(
                 df,

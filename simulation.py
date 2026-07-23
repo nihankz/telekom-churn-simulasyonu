@@ -377,20 +377,24 @@ else:
           tam_metin = ""
 
       metin_kontrol = tam_metin.lower()
+      # Satır sonu ve boşlukları normalize ederek esnek arama sağla
+      temizlenmis_metin = re.sub(r"\s+", " ", metin_kontrol)
 
-      # KATI DOĞRULAMA: Zorunlu Sütun ve Yapı Kontrolü
+      # KATI DOĞRULAMA (Esnetilmiş Eşleşme): Zorunlu Sütun ve Yapı Kontrolü
       zorunlu_tablo_anahtarlari = [
           "fatura no",
           "hat no",
           "kullanıcı",
           "departman",
           "operatör",
-          "toplam (tl)",
+          "toplam",
       ]
       bulunan_anahtar_sayisi = sum(
-          1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in metin_kontrol
+          1
+          for anahtar in zorunlu_tablo_anahtarlari
+          if anahtar in temizlenmis_metin
       )
-      gsm_eslesmeleri = re.findall(r"05\d{9}", metin_kontrol)
+      gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
 
       # En az 3 zorunlu başlık ve hat numarası kalıbı bulunmak zorunda
       if bulunan_anahtar_sayisi < 3 or len(gsm_eslesmeleri) == 0:
@@ -404,7 +408,7 @@ else:
         dosya_gecerli = True
         gercek_hat_sayisi = len(set(gsm_eslesmeleri))
 
-        para_degerleri = re.findall(r"\b\d{3,4}[.,]\d{2}\b", metin_kontrol)
+        para_degerleri = re.findall(r"\b\d{3,4}[.,]\d{2}\b", temizlenmis_metin)
         if para_degerleri:
           temiz_sayilar = [
               float(p.replace(",", "."))

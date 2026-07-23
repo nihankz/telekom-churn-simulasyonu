@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Yükleyeceğiniz şirket hat dökümleri okunur; ancak binlerce hat içeren kurumsal yapılarda dilediğiniz gibi üstünü yazarak hat sayısını manuel simüle edebilirsiniz.
+            <b>📁 BİLGİ:</b> Dosyanızdaki fatura tutarları otomatik okunur. OCR algılama hatalarına takılmadan, sağdaki alandan hat sayısını dilediğiniz gibi (örneğin 10, 1000 veya dilediğiniz kurumsal rakam) tam kontrolle belirleyebilirsiniz.
         </div>
         """,
         unsafe_allow_html=True,
@@ -335,7 +335,6 @@ else:
     col_b2b1, col_b2b2 = st.columns([2, 1])
 
     dosya_gecerli = False
-    gercek_hat_sayisi = 0
     hesaplanan_ortalama_tutar = 0.0
 
     with col_b2b1:
@@ -373,79 +372,33 @@ else:
                 except:
                     tam_metin = ""
 
-            metin_kontrol = tam_metin.lower()
-            temizlenmis_metin = (
-                metin_kontrol.replace("ı", "i")
-                .replace("İ", "i")
-                .replace("ş", "s")
-                .replace("Ş", "s")
-                .replace("ğ", "g")
-                .replace("Ğ", "g")
-                .replace("ü", "u")
-                .replace("Ü", "u")
-                .replace("ö", "o")
-                .replace("Ö", "o")
-                .replace("ç", "c")
-                .replace("Ç", "c")
-            )
-
             with st.expander("🔍 Dosyadan Okunan Ham Metin"):
                 st.code(tam_metin)
 
-            temiz_rakamlar = re.findall(r"\d+", temizlenmis_metin)
-            bulunan_gsm = []
-            tum_rakamlar_birlesik = "".join(temiz_rakamlar)
-
-            for i in range(len(tum_rakamlar_birlesik) - 10):
-                parca = tum_rakamlar_birlesik[i : i + 11]
-                if parca.startswith("05") and parca not in bulunan_gsm:
-                    bulunan_gsm.append(parca)
-
-            standart_arama = re.findall(
-                r"0\s*5\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}", temizlenmis_metin
-            )
-            for s in standart_arama:
-                temiz_s = re.sub(r"\D", "", s)
-                if len(temiz_s) == 11 and temiz_s not in bulunan_gsm:
-                    bulunan_gsm.append(temiz_s)
-
-            gsm_eslesmeleri = bulunan_gsm
-
-            if len(gsm_eslesmeleri) == 0:
-                dosya_gecerli = False
-                st.error(
-                    "❌ **BELGE ONAYLANAMADI:** Yüklenen dosyada geçerli kurumsal"
-                    " hat numaraları (05XX...) tespit edilemedi."
-                )
-            else:
-                dosya_gecerli = True
-                gercek_hat_sayisi = len(set(gsm_eslesmeleri))
-
-                para_degerleri = re.findall(
-                    r"\b\d{1,4}[.,]\d{2}\b", tam_metin
-                )
-                if para_degerleri:
-                    temiz_sayilar = [
-                        (
-                            float(p.replace(".", "").replace(",", "."))
-                            if "." in p and "," in p
-                            else float(p.replace(",", "."))
-                        )
-                        for p in para_degerleri
-                        if 10 < float(p.replace(",", ".")) < 50000
-                    ]
-                    if temiz_sayilar:
-                        hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
-                    else:
-                        hesaplanan_ortalama_tutar = 1500.0
+            # Sadece para değerlerini okuyup ortalama maliyeti buluyoruz (hat sayısını manuel bırakıyoruz ki yanlış saymasın)
+            para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
+            if para_degerleri:
+                temiz_sayilar = [
+                    (
+                        float(p.replace(".", "").replace(",", "."))
+                        if "." in p and "," in p
+                        else float(p.replace(",", "."))
+                    )
+                    for p in para_degerleri
+                    if 10 < float(p.replace(",", ".")) < 50000
+                ]
+                if temiz_sayilar:
+                    hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
                 else:
-                    hesaplanan_ortalama_tutar = 1500.0
+                    hesaplanan_ortalama_tutar = 842.0
+            else:
+                hesaplanan_ortalama_tutar = 842.0
 
-                st.success(
-                    f"✅ Şirket Toplu Fatura / Döküm Dosyası ({kurumsal_dosya.name})"
-                    f" başarıyla doğrulandı ve okundu! Tespit edilen hat sayısı:"
-                    f" {gercek_hat_sayisi}"
-                )
+            dosya_gecerli = True
+            st.success(
+                f"✅ Kurumsal Döküm Dosyası ({kurumsal_dosya.name}) başarıyla"
+                " yüklendi ve ortalama tutarlar analiz edildi!"
+            )
         else:
             dosya_gecerli = False
             st.info(
@@ -454,19 +407,18 @@ else:
             )
 
     with col_b2b2:
-        # Dosya yüklendiyse varsayılan olarak okunan sayıyı getir, ancak max limiti 50000'e çıkararak binlerce hatlı simülasyona izin ver
-        varsayilan_hat = int(gercek_hat_sayisi) if dosya_gecerli else 0
+        # Tamamen kullanıcının kontrolünde olan serbest hat sayısı girişi (Varsayılan 10, istenirse 1000+ girilebilir)
         toplam_hat = st.number_input(
             "Şirket Toplu Hat Sayısı",
-            min_value=0,
-            max_value=50000,
-            value=varsayilan_hat,
-            step=10,
+            min_value=1,
+            max_value=100000,
+            value=10,
+            step=1,
             format="%d",
             disabled=not dosya_gecerli,
             help=(
-                "Dosyadan okunan sayıyı büyütebilir veya büyük ölçekli senaryolar"
-                " için (örn. 1000 hat) manuel güncelleyebilirsiniz."
+                "Dosyadan bağımsız olarak test etmek istediğiniz hat sayısını"
+                " (örn. 10, 1000 vb.) buradan doğrudan girebilirsiniz."
             ),
         )
 
@@ -474,8 +426,8 @@ else:
             "Hat Başı Ortalama Fatura (TL)",
             min_value=0,
             max_value=10000,
-            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 0,
-            step=50,
+            value=int(round(hesaplanan_ortalama_tutar)) if dosya_gecerli else 842,
+            step=10,
             format="%d",
             disabled=not dosya_gecerli,
         )

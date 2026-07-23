@@ -16,22 +16,15 @@ st.set_page_config(page_title="SubOpt", page_icon="📱", layout="wide")
 st.markdown(
     """
 <style>
-
 .block-container{
     padding-top:1.5rem;
     padding-left:3rem;
     padding-right:3rem;
 }
-
-
-/* Ana başlık */
 h1{
     font-weight:700;
     letter-spacing:-1px;
 }
-
-
-/* Kartlar */
 div[data-testid="metric-container"]{
     background:#111827;
     border:1px solid #374151;
@@ -39,60 +32,38 @@ div[data-testid="metric-container"]{
     border-radius:16px;
     box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
-
-
-/* Metric başlığı */
 div[data-testid="metric-container"] label{
     color:#9ca3af;
     font-size:14px;
 }
-
-
-/* Metric değer */
 div[data-testid="metric-container"] [data-testid="stMetricValue"]{
     font-size:32px;
     font-weight:700;
 }
-
-
-/* Genel kutu */
 .info-card{
     background:#111827;
     padding:22px;
     border-radius:18px;
     border:1px solid #374151;
 }
-
-
-/* Başarı kartı */
 .success-card{
     background:#052e16;
     padding:22px;
     border-radius:18px;
     border:1px solid #16a34a;
 }
-
-
-/* Risk kartı */
 .warning-card{
     background:#451a03;
     padding:22px;
     border-radius:18px;
     border:1px solid #f97316;
 }
-
-
-/* Tablo */
 div[data-testid="stDataFrame"]{
     border-radius:15px;
 }
-
-
-/* Sidebar */
 section[data-testid="stSidebar"]{
     background:#0f172a;
 }
-
 </style>
 """,
     unsafe_allow_html=True,
@@ -106,31 +77,9 @@ st.markdown(
         border-radius:24px;
         margin-bottom:30px;
     ">
-
-    <h1 style="
-        color:white;
-        font-size:48px;
-        margin:0;
-    ">
-    📱 SubOpt
-    </h1>
-
-    <p style="
-        color:#dbeafe;
-        font-size:22px;
-        margin-top:10px;
-    ">
-    Telekom Maliyet Zekâ Platformu
-    </p>
-
-    <p style="
-        color:#bfdbfe;
-        font-size:16px;
-    ">
-    Kurumsal telekom harcamalarını analiz edin,
-    gereksiz maliyetleri keşfedin ve tasarruf fırsatlarını yönetin.
-    </p>
-
+    <h1 style="color:white;font-size:48px;margin:0;">📱 SubOpt</h1>
+    <p style="color:#dbeafe;font-size:22px;margin-top:10px;">Telekom Maliyet Zekâ Platformu</p>
+    <p style="color:#bfdbfe;font-size:16px;">Kurumsal telekom harcamalarını analiz edin, gereksiz maliyetleri keşfedin ve tasarruf fırsatlarını yönetin.</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -138,13 +87,8 @@ st.markdown(
 
 st.sidebar.markdown(
     """
-    <h2 style="color:white;">
-    📱 SubOpt
-    </h2>
-
-    <p style="color:#94a3b8;">
-    Telekom Intelligence
-    </p>
+    <h2 style="color:white;">📱 SubOpt</h2>
+    <p style="color:#94a3b8;">Telekom Intelligence</p>
     """,
     unsafe_allow_html=True
 )
@@ -165,31 +109,24 @@ sayfa = st.sidebar.radio(
 # ==========================================================
 
 if sayfa == "👤 Bireysel":
-
     st.header("👤 Bireysel Hat Analizi")
 
     c1, c2, c3, c4 = st.columns(4)
-
     with c1:
         operator = st.selectbox("Operatör", ["Turkcell", "Vodafone", "Türk Telekom"])
-
     with c2:
         aylik = st.number_input("Aylık Fatura", 50, 5000, 520)
-
     with c3:
         rakip = st.number_input("Rakip Teklifi", 50, 5000, 360)
-
     with c4:
         cayma = st.number_input("Cayma Bedeli", 0, 10000, 500)
 
     st.divider()
 
     sol, sag = st.columns(2)
-
     with sol:
         gb = st.slider("Aylık Kullanım (GB)", 1, 100, 25)
         hediye = st.slider("Hediye GB", 0, 20, 5)
-
     with sag:
         ay = st.selectbox("Taahhüt", [12, 24])
         iskonto = st.slider("İskonto (%)", 0.0, 10.0, 2.0, 0.5)
@@ -211,9 +148,7 @@ if sayfa == "👤 Bireysel":
     k4.metric("Yıllık Tasarruf", f"{tasarruf:,.0f} TL")
 
     if tasarruf > 0:
-        st.success(
-            f"💰 Operatör değiştirmeniz halinde yaklaşık {tasarruf:,.0f} TL tasarruf edebilirsiniz."
-        )
+        st.success(f"💰 Operatör değiştirmeniz halinde yaklaşık {tasarruf:,.0f} TL tasarruf edebilirsiniz.")
     else:
         st.warning("Mevcut paket ekonomik görünüyor.")
 
@@ -229,17 +164,11 @@ if sayfa == "👤 Bireysel":
         ],
     })
 
-    karsilastirma["Yıllık Maliyet (TL)"] = (
-        karsilastirma["Aylık Ücret (TL)"] * 12
-    ).round(0)
-
+    karsilastirma["Yıllık Maliyet (TL)"] = (karsilastirma["Aylık Ücret (TL)"] * 12).round(0)
     st.dataframe(karsilastirma, use_container_width=True)
 
     en_iyi = karsilastirma.loc[karsilastirma["Yıllık Maliyet (TL)"].idxmin()]
-
-    st.success(
-        f"🏆 En avantajlı seçenek: **{en_iyi['Operatör']}** ({en_iyi['Yıllık Maliyet (TL)']:,.0f} TL / yıl)"
-    )
+    st.success(f"🏆 En avantajlı seçenek: **{en_iyi['Operatör']}** ({en_iyi['Yıllık Maliyet (TL)']:,.0f} TL / yıl)")
 
     st.divider()
     st.subheader("🎯 SubOpt Paket Önerisi")
@@ -301,9 +230,7 @@ else:
             df = pd.read_excel(dosya)
         else:
             df = pd.read_csv(dosya)
-
         st.session_state.kurumsal_df = df
-
     elif st.session_state.kurumsal_df is not None:
         df = st.session_state.kurumsal_df
     else:
@@ -312,12 +239,7 @@ else:
 
     df = df.dropna(how="all")
 
-    required_columns = {
-        "Hat No",
-        "Kullanıcı",
-        "Departman",
-        "Operatör",
-    }
+    required_columns = {"Hat No", "Kullanıcı", "Departman", "Operatör"}
     missing = required_columns - set(df.columns)
     if missing:
         st.error(
@@ -326,55 +248,36 @@ else:
 
 Bu uygulama yalnızca kurumsal telekom hat dökümlerini analiz eder.
 
-Eksik sütunlar:{", ".join(sorted(missing))}
+Eksik sütunlar: {", ".join(sorted(missing))}
 """
         )
         st.stop()
 
     operators = ["Turkcell", "Vodafone", "Türk Telekom"]
-
     if "Operatör" in df.columns:
         bulunan = df["Operatör"].astype(str).isin(operators).sum()
-
         if bulunan == 0:
-            st.error(
-                """
-❌ Bu dosya telekom hat dökümü olarak doğrulanamadı.
-"""
-            )
+            st.error("❌ Bu dosya telekom hat dökümü olarak doğrulanamadı.")
             st.stop()
 
     st.success(f"✅ {len(df)} kayıt başarıyla analiz edildi.")
     st.divider()
 
-    # ==============================
-    # SUBOPT DATA HESAPLAMA
-    # ==============================
     toplam_hat = len(df)
     sayisal = df.select_dtypes(include=np.number)
     toplam_tutar = 0
     ortalama = 0
     kolon = None
+    
     if not sayisal.empty:
-
         if "Toplam (TL)" in df.columns:
             kolon = "Toplam (TL)"
-
         elif "Toplam" in df.columns:
             kolon = "Toplam"
-
         else:
-            kolon = st.selectbox(
-                "Maliyet sütunu",
-                sayisal.columns
-            )
+            kolon = st.selectbox("Maliyet sütunu", sayisal.columns)
 
-
-        df[kolon] = pd.to_numeric(
-            df[kolon],
-            errors="coerce"
-        )
-
+        df[kolon] = pd.to_numeric(df[kolon], errors="coerce")
         toplam_tutar = df[kolon].sum()
         ortalama = df[kolon].mean()
 
@@ -404,9 +307,7 @@ Eksik sütunlar:{", ".join(sorted(missing))}
                     "seviyede."
                 )
 
-        df["AI Önerisi"] = df.apply(
-            lambda row: ai_detayli_aciklama(row, ortalama), axis=1
-        )
+        df["AI Önerisi"] = df.apply(lambda row: ai_detayli_aciklama(row, ortalama), axis=1)
 
         limit = ortalama * 1.5
         riskli = df[df[kolon] > limit]
@@ -422,9 +323,7 @@ Eksik sütunlar:{", ".join(sorted(missing))}
         if toplam_hat > 0 and kolon
         else 0
     )
-    saglik_skoru = max(
-        0, min(100, int(100 - (yuksek_risk_orani * 100 * 1.2)))
-    )
+    saglik_skoru = max(0, min(100, int(100 - (yuksek_risk_orani * 100 * 1.2))))
 
     if saglik_skoru >= 80:
         skor_renk = "🟢 İyi"
@@ -443,10 +342,6 @@ Eksik sütunlar:{", ".join(sorted(missing))}
     # 📊 SUBOPT PREMIUM DASHBOARD
     # --------------------------------------------------
     if sayfa == "📊 Dashboard":
-
-        # =========================================
-        # HERO PANEL
-        # =========================================
         firsat = int(potansiyel * 12) if "potansiyel" in locals() else 0
         st.markdown(
             f"""
@@ -457,47 +352,15 @@ Eksik sütunlar:{", ".join(sorted(missing))}
                 margin-bottom:25px;
                 color:white;
             ">
-                <h2 style="margin:0;">
-                📡 Telekom Intelligence
-                </h2>
-
-                <h1 style="
-                    margin-top:15px;
-                    font-size:52px;
-                    color:white;
-                ">
-                {firsat:,.0f} TL
-                </h1>
-
-                <p style="
-                    font-size:20px;
-                    margin-top:5px;
-                ">
-                Tahmini yıllık tasarruf fırsatı bulundu
-                </p>
-
+                <h2 style="margin:0;">📡 Telekom Intelligence</h2>
+                <h1 style="margin-top:15px;font-size:52px;color:white;">{firsat:,.0f} TL</h1>
+                <p style="font-size:20px;margin-top:5px;">Tahmini yıllık tasarruf fırsatı bulundu</p>
                 <hr style="border-color:rgba(255,255,255,.25);">
-
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    font-size:18px;
-                ">
-
-                    <div>
-                    📱 {toplam_hat} Hat
-                    </div>
-
-                    <div>
-                    🚨 {len(riskli)} Riskli Hat
-                    </div>
-
-                    <div>
-                    📈 Sağlık Skoru {saglik_skoru}/100
-                    </div>
-
+                <div style="display:flex;justify-content:space-between;font-size:18px;">
+                    <div>📱 {toplam_hat} Hat</div>
+                    <div>🚨 {len(riskli)} Riskli Hat</div>
+                    <div>📈 Sağlık Skoru {saglik_skoru}/100</div>
                 </div>
-
             </div>
             """,
             unsafe_allow_html=True,
@@ -505,39 +368,26 @@ Eksik sütunlar:{", ".join(sorted(missing))}
 
         col1, col2 = st.columns(2)
         with col1:
-
-            st.markdown("""
-        ### 🚨 Bugün Bulunan Fırsatlar
-        """)
-
+            st.markdown("### 🚨 Bugün Bulunan Fırsatlar")
             st.success(f"💰 {firsat:,.0f} TL tasarruf potansiyeli")
-
             st.info(f"📱 {len(riskli)} hat yeniden değerlendirilmeli")
-
             st.warning("📅 Yaklaşan taahhütler kontrol edilmeli")
 
         with col2:
-
-            st.markdown("""
-        ### 🧠 SubOpt AI Yorumu
-        """)
-
+            st.markdown("### 🧠 SubOpt AI Yorumu")
             if saglik_skoru > 80:
                 st.success(
                     """
-        Şirketiniz genel olarak iyi durumda.
-
-        Ancak yüksek maliyetli birkaç hat optimize edilirse
-        telekom bütçesi daha da düşürülebilir.
-        """
+Şirketiniz genel olarak iyi durumda.
+Ancak yüksek maliyetli birkaç hat optimize edilirse telekom bütçesi daha da düşürülebilir.
+"""
                 )
             else:
                 st.error(
                     """
-        Telekom maliyetleri sektör ortalamasının üzerinde.
-
-        Operatör tekliflerinin yeniden değerlendirilmesi önerilir.
-        """
+Telekom maliyetleri sektör ortalamasının üzerinde.
+Operatör tekliflerinin yeniden değerlendirilmesi önerilir.
+"""
                 )
 
         st.divider()
@@ -550,237 +400,88 @@ Eksik sütunlar:{", ".join(sorted(missing))}
                 border-radius:25px;
                 border:1px solid #334155;
             ">
-
-            <h2 style="color:white;margin:0;">
-            📊 SubOpt Finansal Kontrol Merkezi
-            </h2>
-
-            <p style="
-            color:#cbd5e1;
-            font-size:16px;
-            ">
-            Şirketinizin telekom maliyetlerini,
-            risklerini ve tasarruf fırsatlarını yönetin.
-            </p>
-
-
-            <h1 style="
-            color:white;
-            font-size:55px;
-            margin:15px 0;
-            ">
-            {saglik_skoru}/100
-            </h1>
-
-
-            <p style="
-            color:#93c5fd;
-            font-size:20px;
-            font-weight:bold;
-            ">
-            Telekom Sağlık Skoru
-            </p>
-
+            <h2 style="color:white;margin:0;">📊 SubOpt Finansal Kontrol Merkezi</h2>
+            <p style="color:#cbd5e1;font-size:16px;">Şirketinizin telekom maliyetlerini, risklerini ve tasarruf fırsatlarını yönetin.</p>
+            <h1 style="color:white;font-size:55px;margin:15px 0;">{saglik_skoru}/100</h1>
+            <p style="color:#93c5fd;font-size:20px;font-weight:bold;">Telekom Sağlık Skoru</p>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-
         st.divider()
 
-
-        # KPI KARTLARI
-
-        k1,k2,k3 = st.columns(3)
-
+        k1, k2, k3 = st.columns(3)
 
         with k1:
             st.markdown(
-            f"""
-            <div style="
-            background:#052e16;
-            padding:25px;
-            border-radius:20px;
-            border:1px solid #16a34a;
-            ">
-
-            <h3 style="color:#86efac;">
-            💰 Tasarruf Fırsatı
-            </h3>
-
-            <h1 style="color:white;">
-            {potansiyel*12:,.0f} TL
-            </h1>
-
-            <p style="color:#bbf7d0;">
-            Yıllık optimize edilebilir maliyet
-            </p>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+                f"""
+                <div style="background:#052e16;padding:25px;border-radius:20px;border:1px solid #16a34a;">
+                <h3 style="color:#86efac;">💰 Tasarruf Fırsatı</h3>
+                <h1 style="color:white;">{potansiyel*12:,.0f} TL</h1>
+                <p style="color:#bbf7d0;">Yıllık optimize edilebilir maliyet</p>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-
 
         with k2:
             kritik = len(riskli) if 'riskli' in locals() else 0
-
             st.markdown(
-            f"""
-            <div style="
-            background:#451a03;
-            padding:25px;
-            border-radius:20px;
-            border:1px solid #f97316;
-            ">
-
-            <h3 style="color:#fdba74;">
-            ⚠️ Risk Durumu
-            </h3>
-
-            <h1 style="color:white;">
-            {kritik}
-            </h1>
-
-            <p style="color:#fed7aa;">
-            Kritik maliyetli hat
-            </p>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+                f"""
+                <div style="background:#451a03;padding:25px;border-radius:20px;border:1px solid #f97316;">
+                <h3 style="color:#fdba74;">⚠️ Risk Durumu</h3>
+                <h1 style="color:white;">{kritik}</h1>
+                <p style="color:#fed7aa;">Kritik maliyetli hat</p>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-
 
         with k3:
-
             st.markdown(
-            f"""
-            <div style="
-            background:#111827;
-            padding:25px;
-            border-radius:20px;
-            border:1px solid #334155;
-            ">
-
-            <h3 style="color:#94a3b8;">
-            📱 Hat Portföyü
-            </h3>
-
-            <h1 style="color:white;">
-            {toplam_hat}
-            </h1>
-
-            <p style="color:#64748b;">
-            Aktif kurumsal hat
-            </p>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+                f"""
+                <div style="background:#111827;padding:25px;border-radius:20px;border:1px solid #334155;">
+                <h3 style="color:#94a3b8;">📱 Hat Portföyü</h3>
+                <h1 style="color:white;">{toplam_hat}</h1>
+                <p style="color:#64748b;">Aktif kurumsal hat</p>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-
 
         st.divider()
 
-
-        sol,sag = st.columns(2)
-
-
+        sol, sag = st.columns(2)
         with sol:
-
             st.subheader("📡 Operatör Dağılımı")
-
             if "Operatör" in df.columns:
-
-                operator_df = (
-                    df["Operatör"]
-                    .value_counts()
-                    .reset_index()
-                )
-
-                operator_df.columns=[
-                    "Operatör",
-                    "Hat"
-                ]
-
-
-                fig = px.pie(
-                    operator_df,
-                    values="Hat",
-                    names="Operatör",
-                    hole=0.6
-                )
-
-                fig.update_layout(
-                    template="plotly_dark"
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
+                operator_df = df["Operatör"].value_counts().reset_index()
+                operator_df.columns = ["Operatör", "Hat"]
+                fig = px.pie(operator_df, values="Hat", names="Operatör", hole=0.6)
+                fig.update_layout(template="plotly_dark")
+                st.plotly_chart(fig, use_container_width=True)
 
         with sag:
-
             st.subheader("🏢 En Yüksek Maliyetli Departmanlar")
-
             if "Departman" in df.columns:
-
-                dep = (
-                    df.groupby("Departman")[kolon]
-                    .sum()
-                    .reset_index()
-                    .sort_values(
-                        kolon,
-                        ascending=False
-                    )
-                )
-
-
-                fig = px.bar(
-                    dep,
-                    x="Departman",
-                    y=kolon
-                )
-
-                fig.update_layout(
-                    template="plotly_dark"
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
+                dep = df.groupby("Departman")[kolon].sum().reset_index().sort_values(kolon, ascending=False)
+                fig = px.bar(dep, x="Departman", y=kolon)
+                fig.update_layout(template="plotly_dark")
+                st.plotly_chart(fig, use_container_width=True)
 
         st.divider()
-
-
         st.subheader("🤖 SubOpt Önerisi")
 
-
         if kritik > 0:
-
             st.warning(
-            f"""
-            SubOpt analizi sonucunda **{kritik} adet hat**
-            şirket ortalamasının üzerinde maliyet oluşturuyor.
-
-            Önerilen aksiyon:
-            Operatör pazarlığı + paket optimizasyonu
-            """
+                f"""
+SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde maliyet oluşturuyor.
+Önerilen aksiyon: Operatör pazarlığı + paket optimizasyonu
+"""
             )
-
         else:
-
-            st.success(
-            """
-            Telekom portföyünüz dengeli görünüyor.
-            """
-            )
+            st.success("Telekom portföyünüz dengeli görünüyor.")
 
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ
@@ -794,13 +495,9 @@ Eksik sütunlar:{", ".join(sorted(missing))}
 # 🚨 Tasarruf Alarmı
 
 SubOpt analizine göre şirketinizde
-
 **{len(riskli) if 'riskli' in locals() else 0} adet yüksek maliyetli hat** bulundu.
-
 Bu hatlar optimize edilirse
-
 ## 💰 Yaklaşık {potansiyel*12:,.0f} TL
-
 yıllık tasarruf sağlanabilir.
 """
         )
@@ -813,13 +510,7 @@ yıllık tasarruf sağlanabilir.
         if 'riskli' in locals() and len(riskli):
             st.warning(f"{len(riskli)} adet hat şirket ortalamasının %50 üzerinde maliyet oluşturuyor.")
             st.dataframe(
-                riskli[[
-                    "Hat No",
-                    "Kullanıcı",
-                    "Departman",
-                    "Operatör",
-                    kolon,
-                ]],
+                riskli[["Hat No", "Kullanıcı", "Departman", "Operatör", kolon]],
                 use_container_width=True,
             )
         else:
@@ -839,20 +530,11 @@ yıllık tasarruf sağlanabilir.
             st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
             st.dataframe(
                 df.sort_values(kolon, ascending=False)[
-                    [
-                        "Hat No",
-                        "Kullanıcı",
-                        "Departman",
-                        "Operatör",
-                        kolon,
-                        "Risk Skoru",
-                        "AI Önerisi",
-                    ]
+                    ["Hat No", "Kullanıcı", "Departman", "Operatör", kolon, "Risk Skoru", "AI Önerisi"]
                 ].head(10),
                 use_container_width=True,
             )
 
-        # AI Copilot
         st.divider()
         st.subheader("🤖 SubOpt Gelişmiş AI Copilot")
         st.caption("Veri setiniz hakkında doğal dille detaylı analiz alın.")
@@ -923,23 +605,10 @@ yıllık tasarruf sağlanabilir.
 ### 📊 Yönetici Özeti
 
 📱 Aktif Hat Sayısı: **{toplam_hat}**
-
-💰 Toplam Aylık Telekom Gideri:
-**{toplam_tutar:,.2f} TL**
-
-📈 Hat Başına Ortalama:
-**{ortalama:,.2f} TL**
-
-🏢 En yüksek maliyetli departman:
-**{en_pahali_departman.index[0] if en_pahali_departman is not None else '-'}**
-(**{en_pahali_departman.iloc[0]:,.2f} TL** if en_pahali_departman is not None else '0 TL')
-
-🔥 En pahalı hat:
-**{en_pahali_hat['Hat No'] if en_pahali_hat is not None else '-'}**
-(**{en_pahali_hat[kolon]:,.2f} TL** if en_pahali_hat is not None and kolon else '0 TL')
-
-💡 SubOpt önerisi:
-En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
+💰 Toplam Aylık Telekom Gideri: **{toplam_tutar:,.2f} TL**
+📈 Hat Başına Ortalama: **{ortalama:,.2f} TL**
+🏢 En yüksek maliyetli departman: **{en_pahali_departman.index[0] if en_pahali_departman is not None else '-'}**
+💡 SubOpt önerisi: En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
 """
         )
 

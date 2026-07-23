@@ -1,4 +1,3 @@
-Şu an kodunun en başında şu bölüm var:
 st.markdown(
     """
 <style>

@@ -361,7 +361,7 @@ fig_line.add_trace(
             line=dict(color="#10B981", width=3),
         )
     )
-    fig_line.update_layout(
+fig_line.update_layout(
         template="plotly_dark",
         height=320,
         margin=dict(l=20, r=20, t=30, b=20),

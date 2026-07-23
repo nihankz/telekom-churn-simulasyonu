@@ -1,8 +1,11 @@
+from io import BytesIO
 import io
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate
 import streamlit as st
 
 st.set_page_config(page_title="SubOpt", page_icon="📱", layout="wide")
@@ -494,31 +497,76 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
             {"role": "assistant", "content": cevap}
         )
 
-      # PDF / Metin Raporu İndirme Butonu
+      # PDF Raporu İndirme Butonu
       st.divider()
       st.subheader("📄 Yönetici Raporu Dışa Aktar")
 
-      rapor_metni = f"""
-SUBOPT KURUMSAL TELEKOM OPTİMİZASYON RAPORU
---------------------------------------------------
-Rapor Tarihi: 2026
-Aktif Toplam Hat: {toplam_hat}
-Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL
-Hat Başına Ortalama Maliyet: {ortalama:,.2f} TL
-Finansal Sağlık Skoru: {saglik_skoru} / 100 ({skor_renk})
-Tespit Edilen Riskli Hat Sayısı: {len(riskli)}
-Tahmini Yıllık Tasarruf Potansiyeli: {potansiyel*12:,.0f} TL
---------------------------------------------------
-ÖNERİLER:
-1. Yüksek maliyetli hatlar için operatör teklifleri acilen yenilenmelidir.
-2. Departman bazlı bütçe limitleri aşım gösteren birimlerde daraltılmalıdır.
-"""
+      buffer = BytesIO()
+      doc = SimpleDocTemplate(buffer)
+      styles = getSampleStyleSheet()
+      story = []
+      story.append(
+          Paragraph(
+              "<b>SUBOPT TELEKOM OPTİMİZASYON RAPORU</b>", styles["Heading1"]
+          )
+      )
+      story.append(
+          Paragraph(f"Aktif Hat Sayısı: {toplam_hat}", styles["BodyText"])
+      )
+      story.append(
+          Paragraph(
+              f"Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL",
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              f"Hat Başına Ortalama: {ortalama:,.2f} TL", styles["BodyText"]
+          )
+      )
+      story.append(
+          Paragraph(
+              f"Finansal Sağlık Skoru: {saglik_skoru}/100", styles["BodyText"]
+          )
+      )
+      story.append(
+          Paragraph(f"Riskli Hat Sayısı: {len(riskli)}", styles["BodyText"])
+      )
+      story.append(
+          Paragraph(
+              f"Tahmini Yıllık Tasarruf: {potansiyel*12:,.0f} TL",
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph("<br/><b>Yönetici Önerileri</b>", styles["Heading2"])
+      )
+      story.append(
+          Paragraph(
+              "• Riskli hatlar için yeni operatör teklifleri alın.",
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              "• En pahalı departman detaylı incelenmelidir.",
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              "• Ortalama üzerindeki hatlar optimize edilmelidir.",
+              styles["BodyText"],
+          )
+      )
+      doc.build(story)
+      pdf = buffer.getvalue()
 
       st.download_button(
-          label="📄 Yönetici Raporunu İndir (.txt / Rapor)",
-          data=rapor_metni,
-          file_name="SubOpt_Yonetici_Raporu.txt",
-          mime="text/plain",
+          "📄 PDF Yönetici Raporunu İndir",
+          pdf,
+          file_name="SubOpt_Rapor.pdf",
+          mime="application/pdf",
       )
 
   else:

@@ -337,7 +337,7 @@ kumulatif_mevcut = [
         sum([yenileme_fiyat / ((1 + r) ** i) for i in range(1, t + 1)])
         for t in aylar
     ]
-    kumulatif_rakip = [
+kumulatif_rakip = [
         cayma_bedeli
         + sum([rakip_fiyat / ((1 + r) ** i) for i in range(1, t + 1)])
         for t in aylar

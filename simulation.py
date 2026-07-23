@@ -353,7 +353,7 @@ yıllık tasarruf sağlanabilir.
 
     st.markdown(
         f"""
-        <div class="kpi">
+        <div class="tr-kpi">
             <h3>📊 Telekom Finansal Sağlık Skoru</h3>
             <h1 style="font-size: 48px; margin: 0;">{saglik_skoru} / 100</h1>
             <p style="font-size: 18px; font-weight: bold;">{skor_renk}</p>
@@ -515,7 +515,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           use_container_width=True,
       )
 
-      # Gelişmiş AI Copilot Modülü (Esnek Kelime Eşleme Mantığı)
+      # Gelişmiş AI Copilot Modülü
       st.divider()
       st.subheader("🤖 SubOpt Gelişmiş AI Copilot")
       st.caption(
@@ -539,7 +539,6 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
         p = prompt.lower()
         cevap = f"Sorunuzu tam olarak eşleştiremedim ancak filo analizinizde toplam **{toplam_hat} hat** ve **{toplam_tutar:,.2f} TL** maliyet bulunmaktadır. Departmanlar, tasarruf potansiyeli veya riskli hatlar hakkında soru sorabilirsiniz."
 
-        # Esnek kelime kökü ve alternatif eşleme kontrolü
         if any(
             x in p
             for x in [
@@ -635,68 +634,101 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
             {"role": "assistant", "content": cevap}
         )
 
-      # PDF Raporu İndirme Butonu
+      # PDF Raporu İndirme Butonu (Türkçe Karakter Düzeltmeli)
       st.divider()
       st.subheader("📄 Yönetici Raporu Dışa Aktar")
+
+
+      def tr_temizle(metin):
+        cevirmeler = {
+            "İ": "I",
+            "ı": "i",
+            "Ş": "S",
+            "ş": "s",
+            "Ğ": "G",
+            "ğ": "g",
+            "Ü": "U",
+            "ü": "u",
+            "Ö": "O",
+            "ö": "o",
+            "Ç": "C",
+            "ç": "c",
+        }
+        for k, v in cevirmeler.items():
+          metin = metin.replace(k, v)
+        return metin
+
 
       buffer = BytesIO()
       doc = SimpleDocTemplate(buffer)
       styles = getSampleStyleSheet()
       story = []
+
       story.append(
           Paragraph(
-              "<b>SUBOPT TELEKOM OPTİMİZASYON RAPORU</b>", styles["Heading1"]
+              tr_temizle("<b>SUBOPT TELEKOM OPTIMIZASYON RAPORU</b>"),
+              styles["Heading1"],
           )
       )
       story.append(
-          Paragraph(f"Aktif Hat Sayısı: {toplam_hat}", styles["BodyText"])
+          Paragraph(
+              tr_temizle(f"Aktif Hat Sayisi: {toplam_hat}"), styles["BodyText"]
+          )
       )
       story.append(
           Paragraph(
-              f"Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL",
+              tr_temizle(f"Toplam Aylik Maliyet: {toplam_tutar:,.2f} TL"),
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              f"Hat Başına Ortalama: {ortalama:,.2f} TL", styles["BodyText"]
-          )
-      )
-      story.append(
-          Paragraph(
-              f"Finansal Sağlık Skoru: {saglik_skoru}/100", styles["BodyText"]
-          )
-      )
-      story.append(
-          Paragraph(f"Riskli Hat Sayısı: {len(riskli)}", styles["BodyText"])
-      )
-      story.append(
-          Paragraph(
-              f"Tahmini Yıllık Tasarruf: {potansiyel*12:,.0f} TL",
-              styles["BodyText"],
-          )
-      )
-      story.append(
-          Paragraph("<br/><b>Yönetici Önerileri</b>", styles["Heading2"])
-      )
-      story.append(
-          Paragraph(
-              "• Riskli hatlar için yeni operatör teklifleri alın.",
+              tr_temizle(f"Hat Basina Ortalama: {ortalama:,.2f} TL"),
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              "• En pahalı departman detaylı incelenmelidir.",
+              tr_temizle(f"Finansal Saglik Skoru: {saglik_skoru}/100"),
               styles["BodyText"],
           )
       )
       story.append(
           Paragraph(
-              "• Ortalama üzerindeki hatlar optimize edilmelidir.",
+              tr_temizle(f"Riskli Hat Sayisi: {len(riskli)}"),
               styles["BodyText"],
           )
       )
+      story.append(
+          Paragraph(
+              tr_temizle(f"Tahmini Yillik Tasarruf: {potansiyel*12:,.0f} TL"),
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              tr_temizle("<br/><b>Yonetici Onerileri</b>"), styles["Heading2"]
+          )
+      )
+      story.append(
+          Paragraph(
+              tr_temizle("• Riskli hatlar icin yeni operator teklifleri alin."),
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              tr_temizle("• En pahali departman detayli incelenmelidir."),
+              styles["BodyText"],
+          )
+      )
+      story.append(
+          Paragraph(
+              tr_temizle("• Ortalama uzerindeki hatlar optimize edilmelidir."),
+              styles["BodyText"],
+          )
+      )
+
       doc.build(story)
       pdf = buffer.getvalue()
 

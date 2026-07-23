@@ -300,8 +300,7 @@ if hediye_gb > 0:
             unsafe_allow_html=True,
         )
 c_left, c_right = st.columns([1, 1])
-
-    with c_left:
+with c_left:
         st.markdown("##### 🎯 Fiyat Verimliliği (Piyasa Göstergesi)")
         fig_gauge = go.Figure(
             go.Indicator(

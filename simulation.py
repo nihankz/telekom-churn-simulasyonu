@@ -501,3 +501,4 @@ if dosya:
 else:
 
     st.info("Lütfen Excel veya CSV yükleyin.")
+ç

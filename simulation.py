@@ -524,19 +524,42 @@ SubOpt analizi sonucunda **{kritik} adet hat** şirket ortalamasının üzerinde
             st.success("Telekom portföyünüz dengeli görünüyor.")
 
         st.divider()
-        st.subheader("📅 Yaklaşan Taahhütler")
-        taahhut = pd.DataFrame({
-            "Hat No": ["0532 111 11 11", "0542 222 22 22", "0505 333 33 33"],
-            "Kullanıcı": ["Ahmet Yılmaz", "Ayşe Demir", "Mehmet Kaya"],
-            "Bitiş Tarihi": ["12.08.2026", "25.08.2026", "03.09.2026"],
-            "Durum": ["🔴 20 Gün", "🟡 33 Gün", "🟢 42 Gün"]
-        })
-        st.dataframe(taahhut, use_container_width=True)
-        st.info("""
-🤖 **SubOpt AI**
+        if "Taahhüt Bitiş Tarihi" in df.columns:
+            st.subheader("📅 Yaklaşan Taahhütler")
 
-Önümüzdeki 30 gün içinde bitecek hatlar için operatörlerle yeniden pazarlık yapılması önerilir.
-""")
+            df["Taahhüt Bitiş Tarihi"] = pd.to_datetime(
+                df["Taahhüt Bitiş Tarihi"],
+                errors="coerce"
+            )
+
+            bugun = pd.Timestamp.today().normalize()
+
+            df["Kalan Gün"] = (
+                df["Taahhüt Bitiş Tarihi"] - bugun
+            ).dt.days
+
+            yaklasan = df[
+                (df["Kalan Gün"] >= 0) &
+                (df["Kalan Gün"] <= 30)
+            ].sort_values("Kalan Gün")
+
+            st.dataframe(
+                yaklasan[
+                    [
+                        "Hat No",
+                        "Kullanıcı",
+                        "Operatör",
+                        "Taahhüt Bitiş Tarihi",
+                        "Kalan Gün",
+                    ]
+                ],
+                use_container_width=True,
+            )
+
+            if len(yaklasan) > 0:
+                st.warning(f"⚠️ Önümüzdeki 30 gün içinde bitecek {len(yaklasan)} taahhüt bulundu.")
+            else:
+                st.success("✅ Önümüzdeki 30 gün içinde bitecek taahhüt bulunmuyor.")
 
     # --------------------------------------------------
     # 💸 FIRSAT ANALİZİ

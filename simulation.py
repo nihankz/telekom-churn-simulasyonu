@@ -326,9 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>⚠️ ÖNEMLİ BELGE FORMATI UYARISI:</b> Yükleyeceğiniz belgenin geçerli kabul edilmesi ve sistem tarafından okunabilmesi için içerisinde mutlaka şu sütun başlıkları ve veriler yer almalıdır:<br>
-            <code>Fatura No</code> | <code>Hat No</code> | <code>Kullanıcı</code> | <code>Departman</code> | <code>Operatör</code> | <code>Toplam (TL)</code><br>
-            <i>Bu formata uymayan (CV, makale, rastgele metin vb.) belgeler sistem tarafından otomatik olarak reddedilecektir.</i>
+            <b>📁 BİLGİ:</b> Yükleyeceğiniz şirket hat dökümleri (PDF, Excel, CSV veya TXT) esnek ayrıştırma motoru sayesinde hat numaraları ve tutarlar baz alınarak taranır.
         </div>
         """,
         unsafe_allow_html=True,
@@ -355,7 +353,9 @@ else:
                 if dosya_adi.endswith(".pdf"):
                     import fitz
 
-                    pdf = fitz.open(stream=kurumsal_dosya.read(), filetype="pdf")
+                    pdf = fitz.open(
+                        stream=kurumsal_dosya.read(), filetype="pdf"
+                    )
                     for page in pdf:
                         tam_metin += page.get_text("text") + "\n"
                 elif dosya_adi.endswith((".xlsx", ".xls")):
@@ -374,11 +374,8 @@ else:
                     tam_metin = ""
 
             metin_kontrol = tam_metin.lower()
-            temizlenmis_metin = re.sub(r"[\s\|\-_]+", " ", metin_kontrol)
-
-            # --- TÜRKÇE KARAKTERLERİ TAMAMEN NORMALE ÇEVİRME ---
             temizlenmis_metin = (
-                temizlenmis_metin.replace("ı", "i")
+                metin_kontrol.replace("ı", "i")
                 .replace("İ", "i")
                 .replace("ş", "s")
                 .replace("Ş", "s")
@@ -391,51 +388,40 @@ else:
                 .replace("ç", "c")
                 .replace("Ç", "c")
             )
-            
-            with st.expander("🔍 PDF'den Okunan Ham Metin"):
+
+            with st.expander("🔍 Dosyadan Okunan Ham Metin"):
                 st.code(tam_metin)
 
-            # --- GÜNCELLENMİŞ TABLO ANAHTARLARI ---
-            zorunlu_tablo_anahtarlari = [
-                "fatura no",
-                "hat no",
-                "kullanici",
-                "departman",
-                "operator",
-                "toplam",
-            ]
-
-            bulunan_anahtar_sayisi = sum(
-                1 for anahtar in zorunlu_tablo_anahtarlari if anahtar in temizlenmis_metin
+            # --- ESNEK GSM VE VERİ TESPİTİ ---
+            gsm_eslesmeleri = re.findall(
+                r"0\s*[5]\s*\d[\s*\d]{9}", temizlenmis_metin
             )
-
-            telefonlar = re.findall(r"\d+", temizlenmis_metin)
-            gsm_eslesmeleri = []
-
-            for t in telefonlar:
-                if len(t) == 11 and t.startswith("05"):
-                    gsm_eslesmeleri.append(t)
-            
             if not gsm_eslesmeleri:
-                gsm_eslesmeleri = re.findall(r"05\d{9}", temizlenmis_metin)
+                rakamlar_sadece = re.findall(r"\d+", temizlenmis_metin)
+                gsm_eslesmeleri = [
+                    r
+                    for r in rakamlar_sadece
+                    if len(r) == 11 and r.startswith("05")
+                ]
 
-            if bulunan_anahtar_sayisi < 5 or len(gsm_eslesmeleri) == 0:
+            if len(gsm_eslesmeleri) == 0:
                 dosya_gecerli = False
                 st.error(
-                    "❌ **GEÇERSİZ BELGE YAPISI:** Yüklenen dosya istenen formatı"
-                    " içermiyor. Belge içerisinde 'Fatura No', 'Hat No', 'Kullanıcı',"
-                    " 'Departman', 'Operatör' ve 'Toplam (TL)' alanları bulunmalıdır."
+                    "❌ **BELGE ONAYLANAMADI:** Yüklenen dosyada geçerli kurumsal"
+                    " hat numaraları (05XX...) tespit edilemedi."
                 )
             else:
                 dosya_gecerli = True
                 gercek_hat_sayisi = len(set(gsm_eslesmeleri))
 
-                para_degerleri = re.findall(r"\b\d{3,4}[.,]\d{2}\b", temizlenmis_metin)
+                para_degerleri = re.findall(
+                    r"\b\d{1,5}[.,]\d{2}\b", temizlenmis_metin
+                )
                 if para_degerleri:
                     temiz_sayilar = [
                         float(p.replace(",", "."))
                         for p in para_degerleri
-                        if 100 < float(p.replace(",", ".")) < 50000
+                        if 10 < float(p.replace(",", ".")) < 100000
                     ]
                     if temiz_sayilar:
                         hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
@@ -452,8 +438,8 @@ else:
         else:
             dosya_gecerli = False
             st.info(
-                "💡 Analiz yapabilmek için lütfen yukarıda belirtilen formatta şirket"
-                " hat döküm dosyanızı yükleyin."
+                "💡 Analiz yapabilmek için lütfen şirket hat döküm dosyanızı"
+                " yükleyin."
             )
 
     with col_b2b2:
@@ -475,13 +461,16 @@ else:
                 "Şirket Toplu Hat Sayısı", value=0, disabled=True, format="%d"
             )
             ortalama_hat_maliyeti = st.number_input(
-                "Hat Başı Ortalama Fatura (TL)", value=0, disabled=True, format="%d"
+                "Hat Başı Ortalama Fatura (TL)",
+                value=0,
+                disabled=True,
+                format="%d",
             )
 
     if not dosya_gecerli:
         st.warning(
-            "⚠️ Doğru formatta bir kurumsal döküm yüklenmeden rapor ve"
-            " hesaplamalar oluşturulamaz."
+            "⚠️ Geçerli bir kurumsal döküm yüklenmeden rapor ve hesaplamalar"
+            " oluşturulamaz."
         )
     else:
         atıl_hat_orani = 0.28
@@ -531,5 +520,6 @@ else:
             ):
                 st.balloons()
                 st.success(
-                    "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla hizalandı!"
+                    "🚀 Filo hatları en uygun ekonomik tarifelere başarıyla"
+                    " hizalandı!"
                 )

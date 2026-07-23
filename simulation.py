@@ -253,28 +253,58 @@ Eksik sütunlar:{", ".join(sorted(missing))}
             )
             st.stop()
 
-    st.success(f"✅ {len(df)} kayıt başarıyla okundu.")
+    st.success(f"✅ {len(df)} kayıt başarıyla analiz edildi.")
     st.divider()
 
+    # ==============================
+    # SUBOPT YENİ DASHBOARD
+    # ==============================
+    st.subheader("📊 Telekom Finansal Dashboard")
     toplam_hat = len(df)
     sayisal = df.select_dtypes(include=np.number)
-
+    
     toplam_tutar = 0
     ortalama = 0
     kolon = None
 
     if not sayisal.empty:
+
         if "Toplam (TL)" in df.columns:
             kolon = "Toplam (TL)"
         elif "Toplam" in df.columns:
             kolon = "Toplam"
         else:
-            kolon = st.selectbox("Maliyet Sütunu", sayisal.columns)
+            kolon = st.selectbox("Maliyet sütunu", sayisal.columns)
 
-        df[kolon] = pd.to_numeric(df[kolon], errors="coerce")
+        df[kolon] = pd.to_numeric(
+            df[kolon],
+            errors="coerce"
+        )
 
         toplam_tutar = df[kolon].sum()
         ortalama = df[kolon].mean()
+
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.metric(
+            "📱 Aktif Hat",
+            f"{toplam_hat}"
+        )
+    with k2:
+        st.metric(
+            "💰 Aylık Harcama",
+            f"{toplam_tutar:,.0f} TL"
+        )
+    with k3:
+        st.metric(
+            "📊 Ortalama Hat",
+            f"{ortalama:,.0f} TL"
+        )
+    with k4:
+        st.metric(
+            "💸 Yıllık Hacim",
+            f"{toplam_tutar*12:,.0f} TL"
+        )
 
     if not sayisal.empty and kolon:
         df["Risk Skoru"] = np.where(
@@ -317,7 +347,7 @@ Eksik sütunlar:{", ".join(sorted(missing))}
 
     yuksek_risk_orani = (
         len(df[df[kolon] > ortalama * 1.5]) / toplam_hat
-        if toplam_hat > 0
+        if toplam_hat > 0 and kolon
         else 0
     )
     saglik_skoru = max(
@@ -333,14 +363,14 @@ Eksik sütunlar:{", ".join(sorted(missing))}
 
     en_pahali_departman = (
         df.groupby("Departman")[kolon].sum().sort_values(ascending=False)
+        if kolon and "Departman" in df.columns else None
     )
-    en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0]
+    en_pahali_hat = df.sort_values(kolon, ascending=False).iloc[0] if kolon else None
 
     # --------------------------------------------------
     # 📊 DASHBOARD
     # --------------------------------------------------
     if sayfa == "📊 Dashboard":
-        st.header("📊 SubOpt Telekom Dashboard")
         st.divider()
 
         st.markdown(
@@ -359,13 +389,6 @@ Eksik sütunlar:{", ".join(sorted(missing))}
             """,
             unsafe_allow_html=True,
         )
-        st.divider()
-
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Toplam Hat", f"{toplam_hat}")
-        k2.metric("Toplam Maliyet", f"{toplam_tutar:,.0f} TL")
-        k3.metric("Ortalama", f"{ortalama:,.0f} TL")
-        k4.metric("Tahmini Fazla Ödeme", f"{toplam_fazla_odeme:,.0f} TL/yıl")
         st.divider()
 
         col_left, col_right = st.columns(2)
@@ -410,22 +433,22 @@ Eksik sütunlar:{", ".join(sorted(missing))}
 
 SubOpt analizine göre şirketinizde
 
-**{len(riskli)} adet yüksek maliyetli hat** bulundu.
+**{len(riskli) if 'riskli' in locals() else 0} adet yüksek maliyetli hat** bulundu.
 
 Bu hatlar optimize edilirse
 
-## 💰 Yaklaşık {potansiyel*12:,.0f} TL
+## 💰 Yaklaşık {potansiyel*12:,.0f} TL if 'potansiyel' in locals() else 0
 
 yıllık tasarruf sağlanabilir.
 """
         )
 
         st.subheader("💸 SubOpt Tasarruf Potansiyeli")
-        st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL")
-        st.progress(min(potansiyel / 10000, 1.0))
+        st.metric("Tahmini Yıllık Tasarruf", f"{potansiyel*12:,.0f} TL" if 'potansiyel' in locals() else "0 TL")
+        st.progress(min(potansiyel / 10000, 1.0) if 'potansiyel' in locals() else 0.0)
 
         st.subheader("🚨 Ortalama Üzeri Maliyetli Hatlar")
-        if len(riskli):
+        if 'riskli' in locals() and len(riskli):
             st.warning(f"{len(riskli)} adet hat şirket ortalamasının %50 üzerinde maliyet oluşturuyor.")
             st.dataframe(
                 riskli[[
@@ -450,21 +473,22 @@ yıllık tasarruf sağlanabilir.
         st.dataframe(df, use_container_width=True)
         st.divider()
 
-        st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
-        st.dataframe(
-            df.sort_values(kolon, ascending=False)[
-                [
-                    "Hat No",
-                    "Kullanıcı",
-                    "Departman",
-                    "Operatör",
-                    kolon,
-                    "Risk Skoru",
-                    "AI Önerisi",
-                ]
-            ].head(10),
-            use_container_width=True,
-        )
+        if kolon and 'riskli' in locals():
+            st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
+            st.dataframe(
+                df.sort_values(kolon, ascending=False)[
+                    [
+                        "Hat No",
+                        "Kullanıcı",
+                        "Departman",
+                        "Operatör",
+                        kolon,
+                        "Risk Skoru",
+                        "AI Önerisi",
+                    ]
+                ].head(10),
+                use_container_width=True,
+            )
 
         # AI Copilot
         st.divider()
@@ -483,12 +507,12 @@ yıllık tasarruf sağlanabilir.
             "toplam_maliyet": toplam_tutar,
             "ortalama": ortalama,
             "saglik_skoru": saglik_skoru,
-            "riskli_hat": len(riskli),
-            "tasarruf": potansiyel * 12,
-            "en_pahali_hat": en_pahali_hat["Hat No"],
-            "en_pahali_kullanici": en_pahali_hat.get("Kullanıcı", "Bilinmiyor"),
-            "en_pahali_departman": en_pahali_departman.index[0],
-            "operatorler": df["Operatör"].value_counts().to_dict(),
+            "riskli_hat": len(riskli) if 'riskli' in locals() else 0,
+            "tasarruf": potansiyel * 12 if 'potansiyel' in locals() else 0,
+            "en_pahali_hat": en_pahali_hat["Hat No"] if en_pahali_hat is not None else "",
+            "en_pahali_kullanici": en_pahali_hat.get("Kullanıcı", "Bilinmiyor") if en_pahali_hat is not None else "",
+            "en_pahali_departman": en_pahali_departman.index[0] if en_pahali_departman is not None else "",
+            "operatorler": df["Operatör"].value_counts().to_dict() if "Operatör" in df.columns else {},
         }
 
         def copilot_answer(question, data):
@@ -545,12 +569,12 @@ yıllık tasarruf sağlanabilir.
 **{ortalama:,.2f} TL**
 
 🏢 En yüksek maliyetli departman:
-**{en_pahali_departman.index[0]}**
-(**{en_pahali_departman.iloc[0]:,.2f} TL**)
+**{en_pahali_departman.index[0] if en_pahali_departman is not None else '-'}**
+(**{en_pahali_departman.iloc[0]:,.2f} TL** if en_pahali_departman is not None else '0 TL')
 
 🔥 En pahalı hat:
-**{en_pahali_hat['Hat No']}**
-(**{en_pahali_hat[kolon]:,.2f} TL**)
+**{en_pahali_hat['Hat No'] if en_pahali_hat is not None else '-'}**
+(**{en_pahali_hat[kolon]:,.2f} TL** if en_pahali_hat is not None and kolon else '0 TL')
 
 💡 SubOpt önerisi:
 En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incelenmelidir.
@@ -592,8 +616,8 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
         story.append(Paragraph(f"Toplam Aylık Maliyet: {toplam_tutar:,.2f} TL", styles["BodyText"]))
         story.append(Paragraph(f"Hat Başına Ortalama: {ortalama:,.2f} TL", styles["BodyText"]))
         story.append(Paragraph(f"Finansal Sağlık Skoru: {saglik_skoru}/100", styles["BodyText"]))
-        story.append(Paragraph(f"Riskli Hat Sayısı: {len(riskli)}", styles["BodyText"]))
-        story.append(Paragraph(f"Tahmini Yıllık Tasarruf: {potansiyel*12:,.0f} TL", styles["BodyText"]))
+        story.append(Paragraph(f"Riskli Hat Sayısı: {len(riskli) if 'riskli' in locals() else 0}", styles["BodyText"]))
+        story.append(Paragraph(f"Tahmini Yıllık Tasarruf: {potansiyel*12:,.0f} TL" if 'potansiyel' in locals() else "Tahmini Yıllık Tasarruf: 0 TL", styles["BodyText"]))
         story.append(Paragraph("<br/><b>Yönetici Önerileri</b>", styles["Heading2"]))
         story.append(Paragraph("• Riskli hatlar için yeni operatör teklifleri alın.", styles["BodyText"]))
         story.append(Paragraph("• En pahalı departman detaylı incelenmelidir.", styles["BodyText"]))

@@ -515,7 +515,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           use_container_width=True,
       )
 
-      # Gelişmiş AI Copilot Modülü (15+ Farklı Soru Desteği)
+      # Gelişmiş AI Copilot Modülü (Esnek Kelime Eşleme Mantığı)
       st.divider()
       st.subheader("🤖 SubOpt Gelişmiş AI Copilot")
       st.caption(
@@ -537,14 +537,18 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
           st.markdown(prompt)
 
         p = prompt.lower()
-        cevap = "Bu soruyla ilgili detaylı bir veri bulamadım, ancak genel maliyetlerinizi optimize etmeye odaklanabilirsiniz."
+        cevap = f"Sorunuzu tam olarak eşleştiremedim ancak filo analizinizde toplam **{toplam_hat} hat** ve **{toplam_tutar:,.2f} TL** maliyet bulunmaktadır. Departmanlar, tasarruf potansiyeli veya riskli hatlar hakkında soru sorabilirsiniz."
 
-        # 15+ Farklı Senaryo / Soru Analizi
-        if (
-            "departman" in p
-            and "en çok" in p
-            or "en yüksek" in p
-            and "departman" in p
+        # Esnek kelime kökü ve alternatif eşleme kontrolü
+        if any(
+            x in p
+            for x in [
+                "departman",
+                "birim",
+                "bölüm",
+                "hangi departman",
+                "en çok harcayan",
+            ]
         ):
           en_pahali_dep = df.groupby("Departman")[kolon].sum().idxmax()
           dep_tutar = df.groupby("Departman")[kolon].sum().max()
@@ -552,66 +556,68 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
               f"🏢 En yüksek harcamaya sahip departman **{en_pahali_dep}** olup,"
               f" toplam **{dep_tutar:,.2f} TL** maliyet oluşturmaktadır."
           )
-        elif "toplam maliyet" in p or "toplam gider" in p or "ne kadar" in p:
+        elif any(
+            x in p for x in ["maliyet", "gider", "fatura", "toplam", "tutar"]
+        ):
           cevap = (
               f"💰 Toplam aylık telekom gideriniz **{toplam_tutar:,.2f} TL**"
               " seviyesindedir."
           )
-        elif "ortalama" in p:
+        elif any(x in p for x in ["ortalama", "ortalaması", "hat başı"]):
           cevap = (
               f"📈 Hat başına ortalama aylık maliyetiniz **{ortalama:,.2f} TL**"
               " olarak hesaplanmıştır."
           )
-        elif "tasarruf" in p:
+        elif any(x in p for x in ["tasarruf", "kar", "kazanç", "indirim"]):
           cevap = (
               f"💸 Öngörülen yıllık potansiyel tasarruf tutarınız"
               f" **{potansiyel*12:,.0f} TL**'dir."
           )
-        elif "riskli" in p or "yüksek" in p:
+        elif any(x in p for x in ["risk", "yüksek", "pahalı hat", "kritik"]):
           cevap = (
               f"🚨 Şirket ortalamasının %50 üzerinde maliyet üreten"
               f" **{len(riskli)} adet** yüksek riskli hat bulunmaktadır."
           )
-        elif "hat sayı" in p or "kaç hat" in p or "kaç adet" in p:
+        elif any(x in p for x in ["hat sayı", "kaç hat", "kaç adet", "eleman"]):
           cevap = f"📱 Sistemde aktif olarak kayıtlı **{toplam_hat} adet hat** analiz edilmektedir."
-        elif "sağlık" in p or "skor" in p:
+        elif any(x in p for x in ["sağlık", "skor", "durum", "puan"]):
           cevap = (
               f"📊 Telekom Finansal Sağlık Skoru'nuz **{saglik_skoru} / 100**"
               f" ({skor_renk}) olarak belirlenmiştir."
           )
-        elif "en pahalı hat" in p or "en yüksek hat" in p:
+        elif any(x in p for x in ["en pahalı hat", "en yüksek hat", "1. hat"]):
           cevap = (
               f"🔥 En yüksek maliyetli hat **{en_pahali_hat['Hat No']}"
               f"** ({en_pahali_hat.get('Kullanıcı', 'Bilinmiyor')} - "
               f"**{en_pahali_hat[kolon]:,.2f} TL**)."
           )
-        elif "operatör" in p:
+        elif any(x in p for x in ["operatör", "turkcell", "vodafone", "telekom"]):
           op_sayilari = df["Operatör"].value_counts().to_dict()
           op_str = ", ".join([f"**{k}**: {v} hat" for k, v in op_sayilari.items()])
           cevap = f"📡 Operatör dağılımı şu şekildedir: {op_str}"
-        elif "öneri" in p or "tavsiye" in p:
+        elif any(x in p for x in ["öneri", "tavsiye", "ne yapmalıyız", "aksiyon"]):
           cevap = (
               "💡 **SubOpt Önerisi:** Riskli hatların paketlerini gözden"
               " geçirin, yüksek maliyetli departmanlara kota uygulayın ve"
               " taahhüt sürelerini kontrol edin."
           )
-        elif "merhaba" in p or "selam" in p:
+        elif any(x in p for x in ["merhaba", "selam", "hey", "günaydın"]):
           cevap = (
               "👋 Merhaba! Ben SubOpt AI Copilot. Kurumsal filo analizinize"
               " yardımcı olmak için buradayım. Ne öğrenmek istersiniz?"
           )
-        elif "teşekkür" in p or "sağol" in p:
+        elif any(x in p for x in ["teşekkür", "sağol", "harika", "süper"]):
           cevap = (
               "Rica ederim! Başka bir sorunuz olursa yardımcı olmaktan memnun"
               " duyarım. 🚀"
           )
-        elif "özet" in p:
+        elif any(x in p for x in ["özet", "genel", "rapor"]):
           cevap = (
               f"📋 **Hızlı Özet:** {toplam_hat} hat, {toplam_tutar:,.2f} TL"
               f" toplam maliyet, {saglik_skoru}/100 sağlık skoru ve"
               f" {potansiyel*12:,.0f} TL yıllık tasarruf potansiyeli."
           )
-        elif "departmanlar" in p:
+        elif any(x in p for x in ["liste", "departmanlar"]):
           dep_listesi = (
               df.groupby("Departman")[kolon]
               .sum()

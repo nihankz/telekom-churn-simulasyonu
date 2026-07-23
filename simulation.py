@@ -444,6 +444,102 @@ Eksik sütunlar:{", ".join(sorted(missing))}
     # --------------------------------------------------
     if sayfa == "📊 Dashboard":
 
+        # =========================================
+        # HERO PANEL
+        # =========================================
+        firsat = int(potansiyel * 12) if "potansiyel" in locals() else 0
+        st.markdown(
+            f"""
+            <div style="
+                background:linear-gradient(135deg,#1e3a8a,#2563eb);
+                padding:30px;
+                border-radius:24px;
+                margin-bottom:25px;
+                color:white;
+            ">
+                <h2 style="margin:0;">
+                📡 Telekom Intelligence
+                </h2>
+
+                <h1 style="
+                    margin-top:15px;
+                    font-size:52px;
+                    color:white;
+                ">
+                {firsat:,.0f} TL
+                </h1>
+
+                <p style="
+                    font-size:20px;
+                    margin-top:5px;
+                ">
+                Tahmini yıllık tasarruf fırsatı bulundu
+                </p>
+
+                <hr style="border-color:rgba(255,255,255,.25);">
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    font-size:18px;
+                ">
+
+                    <div>
+                    📱 {toplam_hat} Hat
+                    </div>
+
+                    <div>
+                    🚨 {len(riskli)} Riskli Hat
+                    </div>
+
+                    <div>
+                    📈 Sağlık Skoru {saglik_skoru}/100
+                    </div>
+
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+
+            st.markdown("""
+        ### 🚨 Bugün Bulunan Fırsatlar
+        """)
+
+            st.success(f"💰 {firsat:,.0f} TL tasarruf potansiyeli")
+
+            st.info(f"📱 {len(riskli)} hat yeniden değerlendirilmeli")
+
+            st.warning("📅 Yaklaşan taahhütler kontrol edilmeli")
+
+        with col2:
+
+            st.markdown("""
+        ### 🧠 SubOpt AI Yorumu
+        """)
+
+            if saglik_skoru > 80:
+                st.success(
+                    """
+        Şirketiniz genel olarak iyi durumda.
+
+        Ancak yüksek maliyetli birkaç hat optimize edilirse
+        telekom bütçesi daha da düşürülebilir.
+        """
+                )
+            else:
+                st.error(
+                    """
+        Telekom maliyetleri sektör ortalamasının üzerinde.
+
+        Operatör tekliflerinin yeniden değerlendirilmesi önerilir.
+        """
+                )
+
         st.divider()
 
         st.markdown(

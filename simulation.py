@@ -231,6 +231,28 @@ if sayfa == "👤 Bireysel":
 💰 Yıllık yaklaşık **{tasarruf_yil:,.0f} TL** tasarruf sağlayabilirsiniz.
 """)
 
+    st.divider()
+    st.subheader("🔔 SubOpt Akıllı Fiyat Alarmı")
+    esik = aylik * 0.90
+    if rakip < esik:
+        st.success(f"""
+🟢 Daha avantajlı bir teklif bulundu!
+
+Mevcut Fatura : **{aylik:.0f} TL**
+
+Yeni Teklif : **{rakip:.0f} TL**
+
+💰 Yıllık yaklaşık **{tasarruf:,.0f} TL** tasarruf edebilirsiniz.
+
+👉 Operatör değişikliği değerlendirilebilir.
+""")
+    else:
+        st.info("""
+Şu anda piyasada belirgin şekilde daha avantajlı bir teklif görünmüyor.
+
+SubOpt yeni kampanyaları takip ederek sizi bilgilendirecek.
+""")
+
 # ==========================================================
 # KURUMSAL MODÜLLER
 # ==========================================================

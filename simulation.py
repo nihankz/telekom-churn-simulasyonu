@@ -284,8 +284,8 @@ gb_maliyet_rakip = (
 if net_npv_kazanc > 1000:
         st.balloons()
 
-    st.markdown("---")
-    st.subheader("📊 Analitik Karar & Karşılaştırma Raporu")
+st.markdown("---")
+st.subheader("📊 Analitik Karar & Karşılaştırma Raporu")
 
     if hediye_gb > 0:
         st.markdown(

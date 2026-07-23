@@ -258,16 +258,14 @@ hediye_gb = st.slider(
         20,
         8
     )
-
-    firsat_maliyeti = st.slider(
+firsat_maliyeti = st.slider(
         "İskonto Oranı (%)",
         0.0,
         5.0,
         2.0,
         step=0.5
     )
-
-    net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
+ net_satin_alinmasi_gereken_gb = max(0, gb_kullanim - hediye_gb)
     r = firsat_maliyeti / 100
 
     npv_mevcut = sum(
@@ -284,8 +282,7 @@ hediye_gb = st.slider(
         if net_satin_alinmasi_gereken_gb > 0
         else 0
     )
-
-    if net_npv_kazanc > 1000:
+if net_npv_kazanc > 1000:
         st.balloons()
 
     st.markdown("---")
@@ -304,8 +301,7 @@ hediye_gb = st.slider(
             """,
             unsafe_allow_html=True,
         )
-
-    c_left, c_right = st.columns([1, 1])
+     c_left, c_right = st.columns([1, 1])
 
     with c_left:
         st.markdown("##### 🎯 Fiyat Verimliliği (Piyasa Göstergesi)")

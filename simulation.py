@@ -370,10 +370,6 @@ fig_line.update_layout(
     )
 st.plotly_chart(fig_line, use_container_width=True)
 else:
-    # ==========================
-# B2B KURUMSAL ANALİZ
-# ==========================
-
 st.subheader("🏢 Kurumsal Filo Analizi")
 
 dosya = st.file_uploader(

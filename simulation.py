@@ -343,7 +343,7 @@ kumulatif_rakip = [
         for t in aylar
     ]
 fig_line = go.Figure()
-    fig_line.add_trace(
+fig_line.add_trace(
         go.Scatter(
             x=aylar,
             y=kumulatif_mevcut,
@@ -501,4 +501,4 @@ if dosya:
 else:
 
     st.info("Lütfen Excel veya CSV yükleyin.")
-ç
+

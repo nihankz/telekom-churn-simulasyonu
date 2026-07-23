@@ -5,6 +5,16 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+# pypdf kontrolü (gerçek PDF okuyucu)
+try:
+    from pypdf import PdfReader
+except ImportError:
+    import subprocess
+    import sys
+
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pypdf"])
+    from pypdf import PdfReader
+
 # --- SAYFA AYARLARI ---
 st.set_page_config(
     page_title="Kurumsal Fatura & Filo Optimizasyon Portalı",
@@ -326,7 +336,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Dosyanız yerleşik harici kütüphane gerektirmeyen motor ile taranır. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur ve analiz edilir.
+            <b>📁 BİLGİ:</b> Gerçek PDF okuyucu (pypdf) ve esnek ayrıştırma motoru devrede. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur.
         </div>
         """,
         unsafe_allow_html=True,
@@ -335,7 +345,7 @@ else:
     col_b2b1, col_b2b2 = st.columns([2, 1])
 
     dosya_gecerli = False
-    otomatik_tespit_hat_sayisi = 10
+    otomatik_tespit_hat_sayisi = 1
     hesaplanan_ortalama_tutar = 1500.0
 
     with col_b2b1:
@@ -355,19 +365,16 @@ else:
                 if dosya_adi.endswith((".xlsx", ".xls")):
                     df_excel = pd.read_excel(io.BytesIO(dosya_icerigi))
                     tam_metin = df_excel.to_string()
-                # PDF Dosyaları (Harici kütüphane bağımlılığı olmadan metin ve nesne bloklarını ayıklama)
+                    otomatik_tespit_hat_sayisi = (
+                        len(df_excel) if len(df_excel) > 0 else 1
+                    )
+                # PDF Dosyaları (pypdf Gerçek Okuyucu)
                 elif dosya_adi.endswith(".pdf"):
-                    ham_str = dosya_icerigi.decode("latin-1", errors="ignore")
-                    # PDF içerisindeki metin bloklarını ve string parantezlerini yakala
-                    bulunanlar = re.findall(r"\(([^)]+)\)", ham_str)
-                    if bulunan_lar := [b for b in bulunanlar if len(b.strip()) > 1]:
-                        tam_metin = "\n".join(bulunan_lar)
-                    else:
-                        # Eğer parantez bulunamazsa tüm okunabilir kelimeleri ayıkla
-                        kelimeler = re.findall(
-                            r"[A-Za-z0-9ÇŞĞÜÖİçşğüöı.,/\-+]+", ham_str
-                        )
-                        tam_metin = " ".join(kelimeler)
+                    reader = PdfReader(io.BytesIO(dosya_icerigi))
+                    for page in reader.pages:
+                        text = page.extract_text()
+                        if text:
+                            tam_metin += text + "\n"
                 # Metin ve CSV Dosyaları
                 else:
                     try:
@@ -384,24 +391,19 @@ else:
                     tam_metin if tam_metin else "Dosya içeriği boş veya okunamadı."
                 )
 
-            # Dosya yüklendiyse ve bayt içeriyorsa direkt geçerli say
             if len(dosya_icerigi) > 0:
                 dosya_gecerli = True
 
-                # Dinamik hat sayısı tespiti (05 ile başlayan telefon numaraları veya Fatura ID'leri)
-                bulunan_hatlar = re.findall(r"05\d{9}", tam_metin)
-                if bulunan_hatlar:
-                    otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
-                else:
-                    fatura_sayilari = re.findall(r"F\d{5,10}", tam_metin)
-                    if fatura_sayilari:
-                        otomatik_tespit_hat_sayisi = len(set(fatura_sayilari))
+                # PDF veya TXT/CSV için hat/fatura sayacı mantığı
+                if not dosya_adi.endswith((".xlsx", ".xls")):
+                    faturalar = re.findall(r"F\d+", tam_metin)
+                    if faturalar:
+                        otomatik_tespit_hat_sayisi = len(set(faturalar))
                     else:
-                        satirlar = [
-                            s for s in tam_metin.split("\n") if len(s.strip()) > 2
-                        ]
-                        if len(satirlar) > 1:
-                            otomatik_tespit_hat_sayisi = max(1, len(satirlar))
+                        hatlar = re.findall(r"05\d{9}", tam_metin)
+                        otomatik_tespit_hat_sayisi = (
+                            len(set(hatlar)) if hatlar else 1
+                        )
 
                 # Tutar ortalamasını hesapla
                 para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
@@ -432,7 +434,7 @@ else:
             "Şirket Toplu Hat Sayısı (Dinamik)",
             min_value=1,
             max_value=100000,
-            value=otomatik_tespit_hat_sayisi if dosya_gecerli else 10,
+            value=otomatik_tespit_hat_sayisi if dosya_gecerli else 1,
             step=1,
             format="%d",
             disabled=not dosya_gecerli,

@@ -126,6 +126,31 @@ if sayfa == "👤 Bireysel":
   else:
     st.warning("Mevcut paket ekonomik görünüyor.")
 
+  st.divider()
+  st.subheader("📊 Operatör Karşılaştırması")
+
+  karsilastirma = pd.DataFrame({
+      "Operatör": ["Turkcell", "Vodafone", "Türk Telekom"],
+      "Aylık Ücret (TL)": [
+          aylik,
+          max(50, aylik * 0.85),
+          max(50, aylik * 0.90),
+      ],
+  })
+
+  karsilastirma["Yıllık Maliyet (TL)"] = (
+      karsilastirma["Aylık Ücret (TL)"] * 12
+  ).round(0)
+
+  st.dataframe(karsilastirma, use_container_width=True)
+
+  en_iyi = karsilastirma.loc[karsilastirma["Yıllık Maliyet (TL)"].idxmin()]
+
+  st.success(
+      f"🏆 En avantajlı seçenek: **{en_iyi['Operatör']}**"
+      f" ({en_iyi['Yıllık Maliyet (TL)']:,.0f} TL / yıl)"
+  )
+
   fig = go.Figure()
 
   fig.add_trace(go.Bar(x=["Mevcut", "Rakip"], y=[aylik, rakip]))

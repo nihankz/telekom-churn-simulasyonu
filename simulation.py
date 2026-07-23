@@ -302,7 +302,7 @@ else:
         else:
             df = pd.read_csv(dosya)
 
-        st.session_state.kurumsal_df = dosya
+        st.session_state.kurumsal_df = df
 
     elif st.session_state.kurumsal_df is not None:
         df = st.session_state.kurumsal_df

@@ -296,6 +296,53 @@ else:
             "Ortalama",
             f"{ortalama:,.0f} TL"
         )
+        st.divider()
+
+col_left, col_right = st.columns(2)
+
+with col_left:
+
+    operator = (
+        df["Operatör"]
+        .value_counts()
+        .reset_index()
+    )
+
+    operator.columns = ["Operatör", "Hat"]
+
+    fig_operator = px.pie(
+        operator,
+        values="Hat",
+        names="Operatör",
+        hole=0.55,
+        title="📡 Operatör Dağılımı"
+    )
+
+    st.plotly_chart(
+        fig_operator,
+        use_container_width=True
+    )
+
+with col_right:
+
+    departman = (
+        df.groupby("Departman")[kolon]
+        .sum()
+        .reset_index()
+    )
+
+    fig_departman = px.bar(
+        departman,
+        x="Departman",
+        y=kolon,
+        text_auto=".2f",
+        title="🏢 Departman Bazlı Maliyet"
+    )
+
+    st.plotly_chart(
+        fig_departman,
+        use_container_width=True
+    )
 
         st.divider()
 

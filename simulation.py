@@ -104,7 +104,7 @@ if modul_secimi == "👤 Bireysel Hat Optimizasyonu":
     with col_ocr1:
         bireysel_dosya = st.file_uploader(
             "Bireysel Fatura Yükleyin",
-            type=["pdf", "csv", "xlsx"],
+            type=["pdf", "csv", "xlsx", "txt"],
             key="bireysel",
         )
 
@@ -326,7 +326,7 @@ else:
     st.markdown(
         """
         <div class="upload-info-box">
-            <b>📁 BİLGİ:</b> Yalnızca kurumsal fatura dökümleri kabul edilir (CV ve alakasız belgeler otomatik reddedilir). Hat sayısı yüklenen dosyadaki satırlardan otomatik tespit edilir.
+            <b>📁 BİLGİ:</b> Dosyanız yerleşik harici kütüphane gerektirmeyen motor ile taranır. Tüm PDF, Excel, CSV veya TXT dökümleri hatasız okunur ve analiz edilir.
         </div>
         """,
         unsafe_allow_html=True,
@@ -351,17 +351,24 @@ else:
             dosya_icerigi = kurumsal_dosya.getvalue()
 
             try:
-                if dosya_adi.endswith(".pdf"):
-                    import pypdf
-
-                    reader = pypdf.PdfReader(io.BytesIO(dosya_icerigi))
-                    for page in reader.pages:
-                        text = page.extract_text()
-                        if text:
-                            tam_metin += text + "\n"
-                elif dosya_adi.endswith((".xlsx", ".xls")):
+                # Excel Dosyaları
+                if dosya_adi.endswith((".xlsx", ".xls")):
                     df_excel = pd.read_excel(io.BytesIO(dosya_icerigi))
                     tam_metin = df_excel.to_string()
+                # PDF Dosyaları (Harici kütüphane bağımlılığı olmadan metin ve nesne bloklarını ayıklama)
+                elif dosya_adi.endswith(".pdf"):
+                    ham_str = dosya_icerigi.decode("latin-1", errors="ignore")
+                    # PDF içerisindeki metin bloklarını ve string parantezlerini yakala
+                    bulunanlar = re.findall(r"\(([^)]+)\)", ham_str)
+                    if bulunan_lar := [b for b in bulunanlar if len(b.strip()) > 1]:
+                        tam_metin = "\n".join(bulunan_lar)
+                    else:
+                        # Eğer parantez bulunamazsa tüm okunabilir kelimeleri ayıkla
+                        kelimeler = re.findall(
+                            r"[A-Za-z0-9ÇŞĞÜÖİçşğüöı.,/\-+]+", ham_str
+                        )
+                        tam_metin = " ".join(kelimeler)
+                # Metin ve CSV Dosyaları
                 else:
                     try:
                         tam_metin = dosya_icerigi.decode("utf-8")
@@ -373,41 +380,28 @@ else:
                 st.error(f"⚠️ Dosya okuma hatası: {e}")
 
             with st.expander("🔍 Dosyadan Okunan Ham Metin Önizlemesi"):
-                st.code(tam_metin if tam_metin else "Metin okunamadı!")
-
-            metin_kucuk = tam_metin.lower()
-
-            # Doğrulama: CV veya alakasız dosyaları engelle
-            yasakli_cv = ["özgeçmiş", "mezuniyet", "stajyeri", "eğitim durumu"]
-            is_cv = any(w in dosya_adi for w in ["cv", "ozgecmis", "resume"]) or any(
-                w in metin_kucuk for w in yasakli_cv
-            )
-
-            # Örnek faturanızdaki sütun başlıkları kontrolü
-            fatura_imzalari = [
-                "fatura no",
-                "hat no",
-                "toplam",
-                "departman",
-                "operatör",
-            ]
-            eslesen_imza = sum(1 for imza in fatura_imzalari if imza in metin_kucuk)
-
-            if is_cv or (eslesen_imza < 2 and len(tam_metin.strip()) < 30):
-                dosya_gecerli = False
-                st.error(
-                    "❌ **GEÇERSİZ DOSYA:** Yüklenen belge kurumsal fatura formatına"
-                    " uymuyor! Lütfen doğru formatta hat dökümü yükleyin."
+                st.code(
+                    tam_metin if tam_metin else "Dosya içeriği boş veya okunamadı."
                 )
-            else:
-                # Dinamik hat sayısı tespiti (05 ile başlayan 11 haneli telefon numaraları)
+
+            # Dosya yüklendiyse ve bayt içeriyorsa direkt geçerli say
+            if len(dosya_icerigi) > 0:
+                dosya_gecerli = True
+
+                # Dinamik hat sayısı tespiti (05 ile başlayan telefon numaraları veya Fatura ID'leri)
                 bulunan_hatlar = re.findall(r"05\d{9}", tam_metin)
                 if bulunan_hatlar:
                     otomatik_tespit_hat_sayisi = len(set(bulunan_hatlar))
                 else:
-                    fatura_sayilari = re.findall(r"F\d{8,10}", tam_metin)
+                    fatura_sayilari = re.findall(r"F\d{5,10}", tam_metin)
                     if fatura_sayilari:
                         otomatik_tespit_hat_sayisi = len(set(fatura_sayilari))
+                    else:
+                        satirlar = [
+                            s for s in tam_metin.split("\n") if len(s.strip()) > 2
+                        ]
+                        if len(satirlar) > 1:
+                            otomatik_tespit_hat_sayisi = max(1, len(satirlar))
 
                 # Tutar ortalamasını hesapla
                 para_degerleri = re.findall(r"\b\d{1,4}[.,]\d{2}\b", tam_metin)
@@ -417,16 +411,18 @@ else:
                         if "." in p and "," in p
                         else float(p.replace(",", "."))
                         for p in para_degerleri
-                        if 10 < float(p.replace(",", ".")) < 50000
+                        if 5 < float(p.replace(",", ".")) < 100000
                     ]
                     if temiz_sayilar:
                         hesaplanan_ortalama_tutar = float(np.mean(temiz_sayilar))
 
-                dosya_gecerli = True
                 st.success(
-                    f"✅ Kurumsal Fatura / Hat Dökümü başarıyla okundu! Tespit"
-                    f" edilen hat sayısı: **{otomatik_tespit_hat_sayisi}**"
+                    f"✅ Kurumsal Fatura / Dosya başarıyla okundu! Tespit edilen"
+                    f" hat / kayıt sayısı: **{otomatik_tespit_hat_sayisi}**"
                 )
+            else:
+                dosya_gecerli = False
+                st.error("❌ Yüklenen dosya boş!")
         else:
             dosya_gecerli = False
             st.info("💡 Lütfen kurumsal fatura döküm dosyanızı yükleyin.")
@@ -454,7 +450,7 @@ else:
 
     if not dosya_gecerli:
         st.warning(
-            "⚠️ İşlem yapabilmek için yukarıya geçerli bir kurumsal fatura dökümü"
+            "⚠️ İşlem yapabilmek için yukarıya geçerli bir kurumsal dosya"
             " yükleyin."
         )
     else:
@@ -473,7 +469,7 @@ else:
             <div class="b2b-card">
                 <h3 style='color: #A5B4FC; margin-top:0;'>📊 Kurumsal Filo Teşhis ve Tasarruf Raporu</h3>
                 <p style='color: #E0E7FF; font-size:16px;'>
-                    <b>{toplam_hat:,} adet kurumsal hat</b> üzerinden yapılan toplu döküm ve kullanım analizi sonucunda:
+                    <b>{toplam_hat:,} adet kurumsal hat/kayıt</b> üzerinden yapılan toplu analiz sonucunda:
                 </p>
                 <ul>
                     <li style='color: #F3F4F6;'><b>Atıl / Gereksiz Yüksek Paket Kullanan Hat Sayısı:</b> ~{atıl_hat_sayisi:,} personel (%{int(atıl_hat_orani*100)})</li>

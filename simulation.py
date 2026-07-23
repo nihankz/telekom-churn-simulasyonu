@@ -98,16 +98,64 @@ section[data-testid="stSidebar"]{
     unsafe_allow_html=True,
 )
 
-st.title("📱 SubOpt")
-st.caption("Bireysel ve Kurumsal Telekom Optimizasyon Platformu")
+st.markdown(
+    """
+    <div style="
+        background: linear-gradient(135deg,#0f172a,#1d4ed8);
+        padding:40px;
+        border-radius:24px;
+        margin-bottom:30px;
+    ">
+
+    <h1 style="
+        color:white;
+        font-size:48px;
+        margin:0;
+    ">
+    📱 SubOpt
+    </h1>
+
+    <p style="
+        color:#dbeafe;
+        font-size:22px;
+        margin-top:10px;
+    ">
+    Telekom Maliyet Zekâ Platformu
+    </p>
+
+    <p style="
+        color:#bfdbfe;
+        font-size:16px;
+    ">
+    Kurumsal telekom harcamalarını analiz edin,
+    gereksiz maliyetleri keşfedin ve tasarruf fırsatlarını yönetin.
+    </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.sidebar.markdown(
+    """
+    <h2 style="color:white;">
+    📱 SubOpt
+    </h2>
+
+    <p style="color:#94a3b8;">
+    Telekom Intelligence
+    </p>
+    """,
+    unsafe_allow_html=True
+)
 
 sayfa = st.sidebar.radio(
-    "Modül",
+    "MENÜ",
     [
         "📊 Dashboard",
-        "💸 Tasarruf Fırsatları",
+        "💸 Fırsat Analizi",
         "📱 Hat Yönetimi",
-        "📄 Raporlar",
+        "📄 Rapor Merkezi",
         "👤 Bireysel"
     ]
 )
@@ -464,9 +512,9 @@ Eksik sütunlar:{", ".join(sorted(missing))}
                 st.plotly_chart(fig_departman, use_container_width=True)
 
     # --------------------------------------------------
-    # 💸 TASARRUF FIRSATLARI
+    # 💸 FIRSAT ANALİZİ
     # --------------------------------------------------
-    elif sayfa == "💸 Tasarruf Fırsatları":
+    elif sayfa == "💸 Fırsat Analizi":
         st.header("💸 Tasarruf Fırsatları ve Risk Analizi")
         st.divider()
 
@@ -593,9 +641,9 @@ yıllık tasarruf sağlanabilir.
                 st.markdown(response_text, unsafe_allow_html=True)
 
     # --------------------------------------------------
-    # 📄 RAPORLAR
+    # 📄 RAPOR MERKEZİ
     # --------------------------------------------------
-    elif sayfa == "📄 Raporlar":
+    elif sayfa == "📄 Rapor Merkezi":
         st.header("📄 Yönetici Raporları ve Dışa Aktarım")
         st.divider()
 

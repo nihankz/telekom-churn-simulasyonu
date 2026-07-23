@@ -189,6 +189,18 @@ else:
           "🔴 Yüksek",
           np.where(df[kolon] > ortalama, "🟡 Orta", "🟢 Düşük"),
       )
+
+      # AI Öneri Fonksiyonu
+      def ai_oneri_uret(row, ort):
+        if row[kolon] > ort * 1.5:
+          return "🔴 Paket gözden geçirilsin"
+        elif row[kolon] > ort:
+          return "🟡 Operatörden yeni teklif alın"
+        else:
+          return "🟢 Mevcut paket uygun"
+
+      df["AI Önerisi"] = df.apply(lambda row: ai_oneri_uret(row, ortalama), axis=1)
+
       limit = ortalama * 1.5
       riskli = df[df[kolon] > limit]
       potansiyel = riskli[kolon].sum() * 0.20
@@ -339,7 +351,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
       else:
         st.success("Riskli maliyet oluşturan hat bulunamadı.")
 
-      st.subheader("💰 En Pahalı 10 Kayıt")
+      st.subheader("💰 En Pahalı 10 Kayıt (AI Önerileri ile)")
 
       st.dataframe(
           df.sort_values(kolon, ascending=False)[
@@ -350,6 +362,7 @@ En yüksek maliyetli departman ve en pahalı ilk 10 hat öncelikli olarak incele
                   "Operatör",
                   kolon,
                   "Risk Skoru",
+                  "AI Önerisi",
               ]
           ].head(10),
           use_container_width=True,

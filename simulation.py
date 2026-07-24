@@ -78,13 +78,16 @@ st.markdown(
         margin-bottom:30px;
     ">
     <h1 style="color:white;font-size:48px;margin:0;">📱 SubOpt</h1>
-    <p style="color:#dbeafe;font-size:22px;margin-top:10px;">Telekom Maliyet Zekâ Platformu</p>
-    <p style="color:#bfdbfe;font-size:16px;">Kurumsal telekom harcamalarını analiz edin, gereksiz maliyetleri keşfedin ve tasarruf fırsatlarını yönetin.</p>
+    <p style="color:#dbeafe;font-size:22px;margin-top:10px;">Telekom Karar Platformu</p>
+    <p style="color:#bfdbfe;font-size:17px;line-height:1.7;">
+    SubOpt, bireylerin ve şirketlerin telekom harcamalarını şeffaflaştıran,
+    paketleri karşılaştıran ve en doğru kararı vermelerini sağlayan
+    bağımsız bir telekom karar platformudur.
+    </p>
     </div>
     """,
     unsafe_allow_html=True
 )
-
 st.sidebar.markdown(
     """
     <h2 style="color:white;">📱 SubOpt</h2>
